@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Find a customer - HomeKeep</title>
+  <style>
+    .search-box { position: relative; max-width: 560px; }
+    .search-box input { width: 100%; padding: 14px 16px 14px 44px; font-size: 15px; border-radius: 12px; }
+    .search-box .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+    .result-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; border-bottom: 1px solid var(--border-soft); cursor: pointer;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row:hover { background: var(--surface-2); }
+    .result-main { flex: 1; min-width: 0; }
+    .result-name { font-weight: 600; font-size: 14.5px; }
+    .result-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+    .result-meta { text-align: right; font-size: 12.5px; color: var(--muted); }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body data-area="console">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content">
+
+    <div class="topbar"><span>HomeKeep Console</span></div>
+
+    <div id="searchError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Advisor &amp; supervisor</div>
+        <h2>Find a customer</h2>
+        <p class="muted">Phone (any format), name, serial number, or case number.</p>
+      </div>
+    </div>
+
+    <div class="search-box" style="margin-bottom:22px">
+      <span class="icon">&#128269;</span>
+      <input id="searchInput" type="text" placeholder="Search by phone, name, serial or case number&hellip;" autofocus>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="muted mini" id="resultCount">Start typing to search</div>
+      </div>
+      <div id="resultsList"></div>
+      <div id="searchEmpty" class="empty-state">
+        <h3>No customer open yet</h3>
+        <p>Search by phone, name, serial number or case number above.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("customers");
+
+  const input = document.getElementById("searchInput");
+  const list = document.getElementById("resultsList");
+  const empty = document.getElementById("searchEmpty");
+  const countEl = document.getElementById("resultCount");
+
+  let debounceTimer = null;
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  function rowHtml(c) {
+    const id = fieldFirst(c, ["id", "customer_id"], "");
+    const name = fieldFirst(c, ["name", "full_name"], "&mdash;");
+    const phone = fieldFirst(c, ["phone"], "");
+    const city = fieldFirst(c, ["city"], (c.address && c.address.city) || "");
+    const products = fieldFirst(c, ["product_count", "products_count"], null);
+    const covered = fieldFirst(c, ["covered_count"], null);
+    const openCases = fieldFirst(c, ["open_cases", "open_case_count"], null);
+
+    let metaLine = "";
+    if (products !== null) metaLine += products + " products";
+    if (covered !== null) metaLine += (metaLine ? " · " : "") + covered + " covered";
+
+    return `
+      <div class="result-row" data-id="${escapeHtml(id)}">
+        <div class="avatar-circle">${escapeHtml((String(name).trim().slice(0,2) || "?").toUpperCase())}</div>
+        <div class="result-main">
+          <div class="result-name">${escapeHtml(name)}</div>
+          <div class="result-sub">${escapeHtml(phone)}${city ? " · " + escapeHtml(city) : ""}</div>
+        </div>
+        <div class="result-meta">
+          ${metaLine ? metaLine : ""}
+          ${openCases ? `<div><span class="badge b-danger" style="margin-top:4px">${openCases} open case${openCases === 1 ? "" : "s"}</span></div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  async function runSearch(q) {
+    hideBanner("searchError");
+    if (!q) {
+      list.innerHTML = "";
+      empty.style.display = "block";
+      countEl.textContent = "Start typing to search";
+      return;
+    }
+
+    try {
+      const data = await authFetch("/v1/console/customers?q=" + encodeURIComponent(q), { method: "GET" });
+      const items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
+
+      countEl.textContent = items.length + " match" + (items.length === 1 ? "" : "es");
+
+      if (!items.length) {
+        list.innerHTML = "";
+        empty.style.display = "block";
+        empty.querySelector("h3").textContent = "No matches";
+        empty.querySelector("p").textContent = "Nobody matches \u201c" + q + "\u201d yet.";
+      } else {
+        empty.style.display = "none";
+        list.innerHTML = items.map(rowHtml).join("");
+        list.querySelectorAll(".result-row").forEach(row => {
+          row.addEventListener("click", () => {
+            window.location.href = "customer-detail.html?id=" + encodeURIComponent(row.dataset.id);
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Customer search error:", error);
+      showBanner("searchError", error.message || "Unable to search customers.");
+    }
+  }
+
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const q = input.value.trim();
+    debounceTimer = setTimeout(() => runSearch(q), 300);
+  });
+
+</script>
+
+</body>
+</html>

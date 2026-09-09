@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Warranty sale - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body data-area="console">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content" style="max-width:640px">
+
+    <div class="topbar">
+      <a href="#" id="backLink" class="btn ghost small">&larr; Back to customer</a>
+    </div>
+
+    <div id="saleError" class="api-error-banner" role="alert"></div>
+    <div id="saleNotice" class="card" style="padding:14px 16px;margin-bottom:18px;border-left:3px solid var(--accent);display:none">
+      <p class="mini" style="color:var(--text-2)">
+        Your API currently exposes <code>POST /v1/console/warranties</code> (product_id + plan_id) but no
+        endpoint to list available plans yet. Until <code>GET .../warranty-plans</code> exists, pick the
+        plan id manually below &mdash; swap this for a real dropdown once that endpoint is ready.
+      </p>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Extended protection</div>
+        <h2>Sell a warranty</h2>
+        <p class="muted">Price is computed server-side. The agent can't override it.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:24px">
+
+      <label>Customer id
+        <input id="customerIdInput" type="text" placeholder="cust_...">
+      </label>
+      <label>Product id
+        <input id="productIdInput" type="text" placeholder="prod_...">
+      </label>
+      <label>Plan id
+        <input id="planIdInput" type="text" placeholder="plan_ew36...">
+        <span class="field-hint">e.g. the EW-24 / EW-36 / EW-60 plan id from your plans table.</span>
+      </label>
+
+      <div class="divider"></div>
+
+      <p class="muted" style="font-size:13px;line-height:1.5">
+        A payment link is sent to the customer by WhatsApp and push. They pay on the provider's hosted
+        page &mdash; card details never reach HomeKeep. On success the warranty goes <strong>active</strong>
+        and the plan terms are frozen into a <code>plan_snapshot</code>.
+      </p>
+
+      <button class="btn primary full" style="height:48px;margin-top:16px" id="sendLinkBtn">
+        Send payment link
+      </button>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("customers");
+
+  const customerId = qs("customer_id") || "";
+  const productId = qs("product_id") || "";
+
+  document.getElementById("customerIdInput").value = customerId;
+  document.getElementById("productIdInput").value = productId;
+
+  const backLink = document.getElementById("backLink");
+  backLink.href = customerId ? "customer-detail.html?id=" + encodeURIComponent(customerId) : "customers.html";
+
+  document.getElementById("saleNotice").style.display = "block";
+
+  document.getElementById("sendLinkBtn").addEventListener("click", async () => {
+    hideBanner("saleError");
+    const product_id = document.getElementById("productIdInput").value.trim();
+    const plan_id = document.getElementById("planIdInput").value.trim();
+
+    if (!product_id || !plan_id) {
+      showBanner("saleError", "Product id and plan id are both required.");
+      return;
+    }
+
+    const btn = document.getElementById("sendLinkBtn");
+    btn.disabled = true;
+    btn.textContent = "Sending&hellip;";
+
+    try {
+      await authFetch("/v1/console/warranties", {
+        method: "POST",
+        body: { product_id, plan_id }
+      });
+      toast("Payment link sent.");
+      setTimeout(() => {
+        window.location.href = customerId ? "customer-detail.html?id=" + encodeURIComponent(customerId) : "customers.html";
+      }, 600);
+    } catch (error) {
+      showBanner("saleError", error.message || "Could not send the payment link.");
+      btn.disabled = false;
+      btn.textContent = "Send payment link";
+    }
+  });
+
+</script>
+
+</body>
+</html>

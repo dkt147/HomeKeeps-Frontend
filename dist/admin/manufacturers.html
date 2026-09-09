@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Manufacturers - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+    <div id="pageError" class="api-error-banner" role="alert"></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow" id="pageEyebrow"></div>
+        <h2 id="pageTitle"></h2>
+        <p class="muted" id="pageSubtitle"></p>
+      </div>
+      <button class="btn accent" id="newBtn"></button>
+    </div>
+
+    <div class="card" id="formPanel" style="display:none;padding:22px;margin-bottom:20px">
+      <div class="section-title" id="formTitle"></div>
+      <div id="formFields"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="saveFormBtn">Save</button>
+        <button class="btn ghost" id="cancelFormBtn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar"><div class="muted mini" id="rowCount"></div></div>
+      <table class="data-table">
+        <thead><tr id="theadRow"></tr></thead>
+        <tbody id="rows"><tr><td colspan="8"><div class="skeleton-line" style="width:100%"></div></td></tr></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none"><h3>Nothing here yet</h3><p>Create the first one above.</p></div>
+    </div>
+
+  </main>
+</div>
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script src="../shared/js/admin-crud.js"></script>
+<script>
+
+renderCrudPage({
+  navKey: "manufacturers",
+  eyebrow: "Configuration \u00b7 manufacturers",
+  title: "Manufacturers",
+  subtitle: "Who a case is referred to when a product is still under maker's warranty.",
+  listPath: "/v1/admin/manufacturers",
+  createLabel: "+ New manufacturer",
+  columns: [
+    { label: "Name", render: m => `<span class="cell-primary">${escapeHtml(fieldFirst(m,["name"],"\u2014"))}</span>` },
+    { label: "Importer", render: m => m.is_importer ? '<span class="badge b-accent">importer</span>' : '<span class="badge b-muted">\u2014</span>' },
+    { label: "Support phone", render: m => escapeHtml(fieldFirst(m,["support_phone"],"\u2014")) },
+    { label: "Default warranty", render: m => (fieldFirst(m,["warranty_months_default"],"\u2014")) + " mo" },
+    { label: "Default provider id", render: m => `<span class="cell-sub">${escapeHtml(fieldFirst(m,["default_service_provider_id"],"\u2014"))}</span>` }
+  ],
+  fields: [
+    { key: "name", label: "Name", type: "text", placeholder: "Bosch" },
+    { key: "is_importer", label: "Is importer", type: "checkbox" },
+    { key: "support_phone", label: "Support phone", type: "text", placeholder: "*6110" },
+    { key: "warranty_months_default", label: "Default warranty (months)", type: "number", placeholder: "24" },
+    { key: "default_service_provider_id", label: "Default service provider id", type: "text", hint: "uuid from Service providers" },
+    { key: "terms_url", label: "Terms URL", type: "text", placeholder: "https://..." }
+  ]
+});
+
+</script>
+</body>
+</html>

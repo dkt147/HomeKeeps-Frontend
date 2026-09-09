@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Team &amp; SLA - HomeKeep</title>
+  <style>
+    .esc-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; border-bottom:1px solid var(--border-soft); }
+    .esc-row:last-child { border-bottom: none; }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body data-area="console">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content">
+
+    <div class="topbar"><span>HomeKeep Console</span></div>
+
+    <div id="supError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Supervisor</div>
+        <h2>Team &amp; SLA</h2>
+        <p class="muted">Escalations first, then the shift.</p>
+      </div>
+      <button class="btn ghost" id="refreshBtn">&#8635; Refresh</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat stat-card alert"><span class="stat-label"><span class="dot"></span>Breached now</span><span id="sumBreached" class="stat-value api-loading">&mdash;</span></div>
+      <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Open cases</span><span id="sumOpen" class="stat-value api-loading">&mdash;</span></div>
+      <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Due within 4h</span><span id="sumDueSoon" class="stat-value api-loading">&mdash;</span></div>
+      <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Unassigned</span><span id="sumUnassigned" class="stat-value api-loading">&mdash;</span></div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:20px">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Escalations &mdash; SLA breached or nearly there</div></div>
+      <div id="escList"></div>
+      <div id="escEmpty" class="empty-state" style="display:none">
+        <h3>Nothing breached</h3>
+        <p>No open cases are over their SLA window right now.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:18px 20px">
+      <div class="section-title" style="margin-bottom:4px">Provider performance &amp; advisor shift load</div>
+      <p class="mini" style="margin-bottom:14px">
+        Demo data &mdash; wire this to a reporting endpoint (e.g. provider stats + a staff/shift
+        listing) once it exists; nothing here calls the API yet.
+      </p>
+      <table class="data-table">
+        <thead><tr><th>Provider</th><th>Cases (30d)</th><th>SLA met</th><th>Avg close</th><th>CSAT</th></tr></thead>
+        <tbody>
+          <tr><td class="cell-primary">Kav Service</td><td>61</td><td><span class="badge b-success">97%</span></td><td>2.1 d</td><td>4.7</td></tr>
+          <tr><td class="cell-primary">Shalom Electric</td><td>38</td><td><span class="badge b-warning">84%</span></td><td>3.4 d</td><td>4.1</td></tr>
+          <tr><td class="cell-primary">BSH Service <span class="mini">(manufacturer)</span></td><td>44</td><td class="mini">n/a &mdash; not dispatched</td><td>&mdash;</td><td>4.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("supervisor");
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  async function loadSummary() {
+    try {
+      const s = await authFetch("/v1/console/queue/summary", { method: "GET" });
+      document.getElementById("sumOpen").textContent = fieldFirst(s, ["open", "open_cases", "total_open"], 0);
+      document.getElementById("sumBreached").textContent = fieldFirst(s, ["sla_breached", "breached"], 0);
+      document.getElementById("sumDueSoon").textContent = fieldFirst(s, ["due_soon", "due_within_4h"], 0);
+      document.getElementById("sumUnassigned").textContent = fieldFirst(s, ["unassigned"], 0);
+      document.querySelectorAll(".stat-value").forEach(el => el.classList.remove("api-loading"));
+    } catch (error) {
+      console.error("Summary error:", error);
+    }
+  }
+
+  function escRow(item) {
+    const id = fieldFirst(item, ["id", "case_id"], "");
+    const caseNo = fieldFirst(item, ["case_number", "id"], id);
+    const product = fieldFirst(item, ["product_name"], (item.product && item.product.name) || "");
+    const fault = fieldFirst(item, ["fault_type"], item.fault_description || "");
+    const provider = fieldFirst(item, ["provider_name"], (item.provider && item.provider.name) || "not routed");
+    const assigned = fieldFirst(item, ["assigned_to_name", "assigned_to"], "unassigned");
+
+    return `
+      <div class="esc-row">
+        <div>
+          <div class="cell-primary">Case #${escapeHtml(caseNo)} <span class="badge b-danger" style="margin-left:6px">breached</span></div>
+          <div class="cell-sub">${escapeHtml(product)} · ${escapeHtml(fault)} · ${escapeHtml(provider)} · ${escapeHtml(assigned)}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost small" data-open="${escapeHtml(id)}">Open</button>
+          <button class="btn accent small" data-takeover="${escapeHtml(id)}">Take over</button>
+        </div>
+      </div>`;
+  }
+
+  async function loadEscalations() {
+    hideBanner("supError");
+    try {
+      const data = await authFetch("/v1/console/service-cases?page=1&per_page=50&status=breached", { method: "GET" })
+        .catch(async () => authFetch("/v1/console/service-cases?page=1&per_page=50", { method: "GET" }));
+
+      let items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
+      items = items.filter(i => i.sla_breached === true || i.status === "breached" || items.length <= 50);
+      // if the API has no explicit breach filter, fall back to showing everything returned
+      const breachedOnly = items.filter(i => i.sla_breached === true || i.status === "breached");
+      const list = breachedOnly.length ? breachedOnly : items;
+
+      const escList = document.getElementById("escList");
+      const escEmpty = document.getElementById("escEmpty");
+
+      if (!list.length) {
+        escList.innerHTML = "";
+        escEmpty.style.display = "block";
+      } else {
+        escEmpty.style.display = "none";
+        escList.innerHTML = list.slice(0, 20).map(escRow).join("");
+        escList.querySelectorAll("[data-open]").forEach(btn => {
+          btn.addEventListener("click", () => { window.location.href = "case-detail.html?id=" + encodeURIComponent(btn.dataset.open); });
+        });
+        escList.querySelectorAll("[data-takeover]").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const user = getStaffUser();
+            try {
+              await authFetch("/v1/console/service-cases/" + encodeURIComponent(btn.dataset.takeover), {
+                method: "PATCH",
+                body: { assigned_to: user && (user.id || user.email) || undefined, status: "in_progress" }
+              });
+              toast("Case taken over.");
+              loadEscalations();
+            } catch (error) {
+              toast(error.message || "Could not take over the case.", "err");
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Escalations error:", error);
+      showBanner("supError", error.message || "Unable to load escalations.");
+    }
+  }
+
+  document.getElementById("refreshBtn").addEventListener("click", () => { loadSummary(); loadEscalations(); });
+
+  loadSummary();
+  loadEscalations();
+
+</script>
+
+</body>
+</html>

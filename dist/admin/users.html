@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Users &amp; permissions - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">System &middot; users &middot; system_admin only</div>
+        <h2>Users &amp; permissions</h2>
+        <p class="muted">One role per user. Every API request is authorised server-side &mdash; this screen changes who <em>can</em> ask, never what the server checks.</p>
+      </div>
+      <button class="btn accent" disabled title="Needs an API">+ Invite a user</button>
+    </div>
+
+    <div class="table-card" style="margin-bottom:20px">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Preview layout &mdash; static, no API wired yet</div></div>
+      <table class="data-table">
+        <thead><tr><th>User</th><th>Role</th><th>Active</th><th>Last seen</th><th>MFA</th></tr></thead>
+        <tbody>
+          <tr><td class="cell-primary">Yael Barak</td><td><span class="badge b-accent">advisor</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">2 min ago</td><td><span class="badge b-success">on</span></td></tr>
+          <tr><td class="cell-primary">Noa Shani</td><td><span class="badge b-accent">supervisor</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">14 min ago</td><td><span class="badge b-success">on</span></td></tr>
+          <tr><td class="cell-primary">Rami Sror</td><td><span class="badge b-accent">ops_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">1 h ago</td><td><span class="badge b-success">on</span></td></tr>
+          <tr><td class="cell-primary">Gil Amrani</td><td><span class="badge b-accent">business_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">3 h ago</td><td><span class="badge b-success">on</span></td></tr>
+          <tr><td class="cell-primary">Ilan Katz</td><td><span class="badge b-accent">system_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">now</td><td><span class="badge b-success">on</span></td></tr>
+          <tr><td class="cell-primary">Itai Regev</td><td><span class="badge b-accent">advisor</span></td><td><span class="badge b-warning">invited &mdash; not accepted</span></td><td class="cell-sub">&mdash;</td><td><span class="badge b-muted">pending</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="padding:22px;border-left:3px solid var(--accent)">
+      <div class="section-title">Needs an API</div>
+      <p style="font-size:13.5px;line-height:1.6;color:var(--text-2)">
+        The data schema (&sect;5.6) defines a <code>users</code> table &mdash;
+        <code>name, email, role, is_active, last_login_at, mfa_enabled</code> &mdash; and the
+        permission matrix (&sect;3) makes <code>system_admin</code> the only role that should reach
+        this screen. But &sect;7.4 (API Contract &mdash; Admin) doesn't list a CRUD endpoint for it,
+        only <code>GET /v1/admin/audit-log</code>. Give me something like
+        <code>CRUD /v1/admin/users</code> (plus an invite/resend-invite action) and this wires up
+        exactly like <a href="manufacturers.html" class="btn link">Manufacturers</a> &mdash; note in
+        the spec: <em>"Changing a role takes effect on the user's next request, not their next
+        login"</em>, so the update endpoint needs to invalidate any cached authorisation immediately.
+      </p>
+    </div>
+
+  </main>
+</div>
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>renderSidebar("users");</script>
+</body>
+</html>

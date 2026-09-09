@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Webhook replay - HomeKeep</title>
+  <link rel="stylesheet" href="../shared/css/admin.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Data</div>
+        <h2>Webhook replay</h2>
+        <p class="muted">Failed webhook deliveries (leads, WhatsApp, payments, OCR) sit in a dead letter queue with manual replay available here.</p>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:20px">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Preview layout &mdash; static, no API wired yet</div></div>
+      <table class="data-table">
+        <thead><tr><th>Received</th><th>Source</th><th>Event</th><th>Attempts</th><th>Last error</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="cell-sub">27.08 09:41</td><td><span class="badge b-accent">webhooks/leads</span></td><td>lead.created</td><td>3</td><td class="cell-sub">Upstream timeout (502)</td><td><button class="btn ghost small" disabled>Replay</button></td></tr>
+          <tr><td class="cell-sub">27.08 08:15</td><td><span class="badge b-accent">webhooks/whatsapp</span></td><td>message.delivered</td><td>1</td><td class="cell-sub">Signature mismatch</td><td><button class="btn ghost small" disabled>Replay</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="padding:22px;border-left:3px solid var(--accent)">
+      <div class="section-title">Needs an API</div>
+      <p style="font-size:13.5px;line-height:1.6;color:var(--text-2)">
+        &sect;7.6 requires every webhook to be idempotent with failed deliveries going to a dead
+        letter queue with manual replay available from Admin &mdash; but no endpoint to list or
+        replay that queue was in &sect;7.4. Give me
+        <code>GET /v1/admin/webhooks/dead-letter</code> and
+        <code>POST /v1/admin/webhooks/dead-letter/&#123;id&#125;/replay</code> (or similar) and this
+        table becomes real, with the Replay button wired up.
+      </p>
+    </div>
+  </main>
+</div>
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>renderSidebar("webhook-replay");</script>
+</body>
+</html>

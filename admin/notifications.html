@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WhatsApp templates - HomeKeep</title>
+  <link rel="stylesheet" href="../shared/css/admin.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+    <div id="pageError" class="api-error-banner" role="alert"></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow" id="pageEyebrow"></div>
+        <h2 id="pageTitle"></h2>
+        <p class="muted" id="pageSubtitle"></p>
+      </div>
+      <button class="btn accent" id="newBtn"></button>
+    </div>
+
+    <div class="card" id="formPanel" style="display:none;padding:22px;margin-bottom:20px">
+      <div class="section-title" id="formTitle"></div>
+      <div id="formFields"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="saveFormBtn">Save</button>
+        <button class="btn ghost" id="cancelFormBtn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar"><div class="muted mini" id="rowCount"></div></div>
+      <table class="data-table">
+        <thead><tr id="theadRow"></tr></thead>
+        <tbody id="rows"><tr><td colspan="8"><div class="skeleton-line" style="width:100%"></div></td></tr></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none"><h3>Nothing here yet</h3><p>Create the first one above.</p></div>
+    </div>
+
+  </main>
+</div>
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script src="../shared/js/admin-crud.js"></script>
+<script>
+
+renderCrudPage({
+  navKey: "notifications",
+  eyebrow: "Communication \u00b7 whatsapp_templates",
+  title: "WhatsApp templates",
+  subtitle: "Service and marketing may never mix. A service template may only manage a product the customer already owns; anything with a commercial offer is marketing and requires consent_marketing = true \u2014 enforced server-side.",
+  listPath: "/v1/admin/whatsapp-templates",
+  createLabel: "+ New template",
+  columns: [
+    { label: "Name", render: t => `<span class="cell-primary">${escapeHtml(fieldFirst(t,["name"],"\u2014"))}</span>` },
+    { label: "Class", render: t => { const c = fieldFirst(t,["category"],""); return `<span class="badge ${c==='marketing' ? 'b-warning' : 'b-accent'}">${escapeHtml(c||'\u2014')}</span>`; } },
+    { label: "Language", render: t => escapeHtml(fieldFirst(t,["language"],"\u2014")) },
+    { label: "BSP template id", render: t => `<span class="cell-sub">${escapeHtml(fieldFirst(t,["bsp_template_id"],"\u2014"))}</span>` },
+    { label: "Approval", render: t => { const s = fieldFirst(t,["approval_status"],"pending"); return `<span class="badge ${s==='approved'?'b-success':'b-warning'}">${escapeHtml(s)}</span>`; } }
+  ],
+  fields: [
+    { key: "name", label: "Name", type: "text", placeholder: "ownership_confirm" },
+    { key: "bsp_template_id", label: "BSP template id", type: "text" },
+    { key: "category", label: "Class", type: "select", options: [{value:"service",label:"service"},{value:"marketing",label:"marketing"}] },
+    { key: "language", label: "Language", type: "text", placeholder: "he" },
+    { key: "variables", label: "Variables", type: "list", hint: "comma separated placeholder names, e.g. manufacturer, category, date", placeholder: "manufacturer, category, date" }
+  ]
+});
+
+</script>
+</body>
+</html>

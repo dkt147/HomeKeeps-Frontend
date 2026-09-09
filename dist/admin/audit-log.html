@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Audit log - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+
+    <div id="auditError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">System &middot; audit_log &middot; system_admin only</div>
+        <h2>Audit log</h2>
+        <p class="muted">Append-only. Every change to warranty_plans, eligibility_rules and lead_sources lands here with a full before/after payload.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px 18px;margin-bottom:18px">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+        <label>Entity <input id="fEntity" type="text" placeholder="warranty_plans"></label>
+        <label>Actor <input id="fActor" type="text" placeholder="gil.amrani"></label>
+        <label>From <input id="fFrom" type="date"></label>
+        <label>To <input id="fTo" type="date"></label>
+      </div>
+      <button class="btn ghost small" id="applyFilterBtn" style="margin-top:6px">Apply filters</button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar"><div class="muted mini" id="rowCount"></div></div>
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Actor</th><th>Entity</th><th>Action</th><th>IP</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6"><div class="skeleton-line" style="width:100%"></div></td></tr></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none"><h3>Nothing found</h3><p>No audit entries match these filters.</p></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="diffOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-card" style="max-width:640px">
+    <div class="section-title">Before / after</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div class="mini" style="margin-bottom:6px">Before</div>
+        <pre id="diffBefore" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11.5px;max-height:300px;overflow:auto"></pre>
+      </div>
+      <div>
+        <div class="mini" style="margin-bottom:6px">After</div>
+        <pre id="diffAfter" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11.5px;max-height:300px;overflow:auto"></pre>
+      </div>
+    </div>
+    <button class="btn ghost full" id="closeDiffBtn" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("audit-log");
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  function rowHtml(item, idx) {
+    const when = fieldFirst(item, ["created_at"], null);
+    const actor = fieldFirst(item, ["actor_id"], (item.actor && item.actor.name) || "&mdash;");
+    const entity = fieldFirst(item, ["entity"], "&mdash;");
+    const entityId = fieldFirst(item, ["entity_id"], "");
+    const action = fieldFirst(item, ["action"], "&mdash;");
+    const ip = fieldFirst(item, ["ip"], "&mdash;");
+
+    return `
+      <tr>
+        <td class="cell-sub">${when ? fmtDateTime(when) : "&mdash;"}</td>
+        <td class="cell-primary">${escapeHtml(actor)}</td>
+        <td>${escapeHtml(entity)}<div class="cell-sub">${escapeHtml(entityId)}</div></td>
+        <td><span class="badge b-accent">${escapeHtml(action)}</span></td>
+        <td class="cell-sub">${escapeHtml(ip)}</td>
+        <td><button class="btn ghost small" data-diff="${idx}">View diff</button></td>
+      </tr>`;
+  }
+
+  let currentItems = [];
+
+  async function load() {
+    hideBanner("auditError");
+    const tbody = document.getElementById("rows");
+    const empty = document.getElementById("emptyState");
+
+    const params = new URLSearchParams();
+    const entity = document.getElementById("fEntity").value.trim();
+    const actor = document.getElementById("fActor").value.trim();
+    const from = document.getElementById("fFrom").value;
+    const to = document.getElementById("fTo").value;
+    if (entity) params.set("entity", entity);
+    if (actor) params.set("actor", actor);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+
+    try {
+      const data = await authFetch("/v1/admin/audit-log" + (params.toString() ? "?" + params.toString() : ""), { method: "GET" });
+      const items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
+      currentItems = items;
+
+      document.getElementById("rowCount").textContent = items.length + " entr" + (items.length === 1 ? "y" : "ies");
+
+      if (!items.length) {
+        tbody.innerHTML = "";
+        empty.style.display = "block";
+      } else {
+        empty.style.display = "none";
+        tbody.innerHTML = items.map(rowHtml).join("");
+        tbody.querySelectorAll("[data-diff]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const item = currentItems[Number(btn.dataset.diff)];
+            document.getElementById("diffBefore").textContent = JSON.stringify(item.before ?? {}, null, 2);
+            document.getElementById("diffAfter").textContent = JSON.stringify(item.after ?? {}, null, 2);
+            document.getElementById("diffOverlay").style.display = "flex";
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Audit log error:", error);
+      tbody.innerHTML = "";
+      showBanner("auditError", error.message || "Unable to load the audit log.");
+    }
+  }
+
+  document.getElementById("applyFilterBtn").addEventListener("click", load);
+  document.getElementById("closeDiffBtn").addEventListener("click", () => {
+    document.getElementById("diffOverlay").style.display = "none";
+  });
+
+  load();
+
+</script>
+</body>
+</html>

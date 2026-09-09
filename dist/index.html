@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <script src="shared/js/config.js"></script>
+  <script src="shared/js/auth.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - HomeKeep Console</title>
+
+  <style>
+    .auth-message {
+      display: none;
+      margin-top: 15px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+    .auth-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .auth-success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+
+    .password-field { position: relative; }
+    .password-field input { width: 100%; padding-right: 46px; }
+    .password-toggle {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      border: 0; background: transparent; cursor: pointer; font-size: 16px; padding: 5px;
+    }
+    .login-button { height: 48px; }
+    .role-hint {
+      margin-top: 22px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body>
+
+<main class="auth">
+  <div class="auth-card">
+
+    <div class="brand-lockup">
+      <div class="brand-mark"></div>
+      <h1>HomeKeep</h1>
+      <p class="muted">Advisor &amp; admin console</p>
+    </div>
+
+    <form id="loginForm">
+
+      <label>
+        Email
+        <input id="email" name="email" type="email" placeholder="you@homekeep.com" autocomplete="username" required>
+      </label>
+
+      <label>
+        Password
+        <div class="password-field">
+          <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+          <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">&#128065;</button>
+        </div>
+      </label>
+
+      <button type="submit" id="loginButton" class="btn primary full login-button">
+        Sign in to workspace
+      </button>
+
+      <div id="loginError" class="auth-message auth-error" role="alert"></div>
+      <div id="loginSuccess" class="auth-message auth-success" role="status"></div>
+
+    </form>
+
+    <p class="mini" style="text-align:center;margin-top:20px">
+      Secure HomeKeep staff workspace
+    </p>
+
+    <div class="role-hint">
+      Any staff role signs in here &mdash; advisor, supervisor, ops_admin, business_admin or
+      system_admin. What you see after signing in is driven entirely by what the server
+      allows your account to do.
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const loginForm = document.getElementById("loginForm");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const loginButton = document.getElementById("loginButton");
+  const loginError = document.getElementById("loginError");
+  const loginSuccess = document.getElementById("loginSuccess");
+  const passwordToggle = document.getElementById("passwordToggle");
+
+  function showError(message) {
+    loginError.textContent = message;
+    loginError.style.display = "block";
+    loginSuccess.textContent = "";
+    loginSuccess.style.display = "none";
+  }
+
+  function showSuccess(message) {
+    loginSuccess.textContent = message;
+    loginSuccess.style.display = "block";
+    loginError.textContent = "";
+    loginError.style.display = "none";
+  }
+
+  function clearMessages() {
+    loginError.textContent = "";
+    loginError.style.display = "none";
+    loginSuccess.textContent = "";
+    loginSuccess.style.display = "none";
+  }
+
+  function clearPriorSession() {
+    clearStaffAuth();
+  }
+
+  passwordToggle.addEventListener("click", function () {
+    const visible = passwordInput.type === "text";
+    passwordInput.type = visible ? "password" : "text";
+    passwordToggle.textContent = visible ? "👁" : "🙈";
+    passwordToggle.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+  });
+
+  loginForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearMessages();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      showError("Please enter your email and password.");
+      return;
+    }
+
+    clearPriorSession();
+    loginButton.disabled = true;
+    loginButton.textContent = "Signing in...";
+
+    try {
+      const data = await staffLogin(email, password);
+
+      if (data?.mfa_setup_required && data.setup_token) {
+        sessionStorage.setItem("homekeep_mfa_setup_token", data.setup_token);
+        if (data.expires_in) {
+          sessionStorage.setItem("homekeep_mfa_expires_in", String(data.expires_in));
+        }
+
+        showSuccess("Credentials accepted. Redirecting to MFA setup...");
+        setTimeout(() => {
+          window.location.href = getHomeKeepRootPath() + "auth/mfa-setup.html";
+        }, 300);
+        return;
+      }
+
+      if (data?.mfa_required && data.challenge_token) {
+        sessionStorage.setItem("homekeep_mfa_challenge_token", data.challenge_token);
+        if (data.expires_in) {
+          sessionStorage.setItem("homekeep_mfa_expires_in", String(data.expires_in));
+        }
+
+        showSuccess("Credentials accepted. Enter your MFA code...");
+        setTimeout(() => {
+          window.location.href = getHomeKeepRootPath() + "auth/mfa-verify.html";
+        }, 300);
+        return;
+      }
+
+      // Defensive support if the backend ever returns a fully authenticated
+      // response directly. Normal Phase 1 staff login uses MFA first.
+      if (data?.access_token && data?.refresh_token) {
+        saveStaffAuth(data);
+        showSuccess("Login successful. Redirecting...");
+        setTimeout(() => {
+          window.location.href = getHomeKeepLandingPath();
+        }, 300);
+        return;
+      }
+
+      showError("Login response did not contain a valid MFA challenge.");
+      loginButton.disabled = false;
+      loginButton.textContent = "Sign in to workspace";
+    } catch (error) {
+      console.error("HomeKeep staff login error:", error);
+      showError(getStaffAuthErrorMessage(error, "Login failed. Please try again."));
+      loginButton.disabled = false;
+      loginButton.textContent = "Sign in to workspace";
+    }
+  });
+</script>
+
+</body>
+</html>

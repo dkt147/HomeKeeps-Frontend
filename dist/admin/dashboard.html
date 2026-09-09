@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body data-area="admin">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content">
+
+    <div class="topbar">
+      <span>HomeKeep Console</span>
+      <span class="topbar-right muted" id="clock"></span>
+    </div>
+
+    <div id="dashboardError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Operations overview</div>
+        <h2 id="greeting">Good morning</h2>
+        <p class="muted">Your HomeKeep service ecosystem at a glance.</p>
+      </div>
+    </div>
+
+    <div class="stats">
+
+      <div class="stat stat-card">
+        <span class="stat-label"><span class="dot"></span>Customers</span>
+        <span id="statCustomers" class="stat-value api-loading">&mdash;</span>
+      </div>
+
+      <div class="stat stat-card">
+        <span class="stat-label"><span class="dot"></span>Products</span>
+        <span id="statProducts" class="stat-value api-loading">&mdash;</span>
+      </div>
+
+      <div class="stat stat-card">
+        <span class="stat-label"><span class="dot"></span>Open service cases</span>
+        <span id="statCases" class="stat-value api-loading">&mdash;</span>
+      </div>
+
+      <div class="stat stat-card">
+        <span class="stat-label"><span class="dot"></span>Leads</span>
+        <span id="statLeads" class="stat-value api-loading">&mdash;</span>
+      </div>
+
+    </div>
+
+    <div class="data-grid">
+
+      <section class="card data-card">
+        <div class="eyebrow">Sales</div>
+        <h3>Open opportunities</h3>
+        <p>Currently open opportunities.</p>
+        <div id="statOpportunities" class="data-number api-loading">&mdash;</div>
+      </section>
+
+      <section class="card data-card">
+        <div class="eyebrow">Warranty</div>
+        <h3>Active warranties</h3>
+        <p>Currently active warranties.</p>
+        <div id="statWarranties" class="data-number api-loading">&mdash;</div>
+      </section>
+
+      <section class="card data-card">
+        <div class="eyebrow">Service level</div>
+        <h3>SLA breached cases</h3>
+        <p>Cases currently breaching SLA.</p>
+        <div id="statSlaBreached" class="data-number api-loading">&mdash;</div>
+      </section>
+
+    </div>
+
+    <div class="data-section">
+      <div class="section-title">Jump in</div>
+      <div class="data-grid">
+        <a href="../console/service-cases.html" class="card data-card" style="display:block">
+          <div class="eyebrow">Advisor</div>
+          <h3>Case queue</h3>
+          <p>Open cases waiting to be worked, by SLA.</p>
+        </a>
+        <a href="../console/supervisor.html" class="card data-card" style="display:block">
+          <div class="eyebrow">Supervisor</div>
+          <h3>Team &amp; SLA</h3>
+          <p>Escalations, provider performance and shift load.</p>
+        </a>
+        <a href="warranty-plans.html" class="card data-card" style="display:block">
+          <div class="eyebrow">Configuration</div>
+          <h3>Plans &amp; pricing</h3>
+          <p>business_admin only. Never touches a warranty already sold.</p>
+        </a>
+        <a href="reports.html" class="card data-card" style="display:block">
+          <div class="eyebrow">Operations</div>
+          <h3>Reports</h3>
+          <p>Conversion funnel, loss ratio, service performance.</p>
+        </a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("dashboard");
+
+  function tickClock() {
+    const el = document.getElementById("clock");
+    if (el) el.textContent = new Date().toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  function setValue(id, value) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.textContent = (value ?? 0);
+    element.classList.remove("api-loading");
+  }
+
+  function updateGreeting() {
+    const user = getStaffUser();
+    const name = (user && (user.name || user.full_name)) ? user.name || user.full_name : "";
+    const hour = new Date().getHours();
+    let greeting = "Good morning";
+    if (hour >= 12 && hour < 17) greeting = "Good afternoon";
+    if (hour >= 17) greeting = "Good evening";
+    document.getElementById("greeting").textContent = greeting + (name ? ", " + name : "");
+  }
+
+  /*
+   * GET /v1/admin/dashboard
+   */
+  async function loadDashboard() {
+    hideBanner("dashboardError");
+    try {
+      const data = await authFetch("/v1/admin/dashboard", { method: "GET" });
+
+      setValue("statCustomers", data.customers);
+      setValue("statProducts", data.products);
+      setValue("statCases", data.open_service_cases);
+      setValue("statLeads", data.leads);
+      setValue("statOpportunities", data.open_opportunities);
+      setValue("statWarranties", data.active_warranties);
+      setValue("statSlaBreached", data.sla_breached_cases);
+
+    } catch (error) {
+      console.error("Dashboard API error:", error);
+      showBanner("dashboardError", error.message || "Unable to load dashboard data.");
+    }
+  }
+
+  updateGreeting();
+  loadDashboard();
+
+</script>
+
+</body>
+</html>

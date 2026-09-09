@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lead import - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+
+    <div id="importError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Data &middot; lead intake</div>
+        <h2>Lead import</h2>
+        <p class="muted">CSV/XLSX upload &mdash; idempotent on <code>external_id</code>.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:24px;margin-bottom:20px">
+      <div class="section-title">Upload a file</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+        <button class="btn primary" id="importBtn">Import</button>
+      </div>
+      <p class="field-hint" style="margin-top:10px">POST /v1/admin/leads/import &mdash; returns a rejection report with a reason per row.</p>
+    </div>
+
+    <div id="importSummary" class="stats" style="display:none">
+      <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Rows</span><span id="sumRows" class="stat-value">&mdash;</span></div>
+      <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Accepted</span><span id="sumAccepted" class="stat-value">&mdash;</span></div>
+      <div class="stat stat-card alert"><span class="stat-label"><span class="dot"></span>Rejected</span><span id="sumRejected" class="stat-value">&mdash;</span></div>
+    </div>
+
+    <div id="rejectionSection" class="table-card" style="display:none">
+      <div class="table-toolbar"><div class="section-title" id="rejectionHeading" style="margin:0">Rejection report</div></div>
+      <table class="data-table">
+        <thead><tr><th>Row</th><th>external_id</th><th>Phone as supplied</th><th>Product</th><th>Status</th><th>Reason</th></tr></thead>
+        <tbody id="rejectionRows"></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("leads-import");
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  function rejectionRow(r, i) {
+    return `
+      <tr>
+        <td class="cell-sub">${i + 1}</td>
+        <td>${escapeHtml(fieldFirst(r, ["external_id"], "&mdash;"))}</td>
+        <td>${escapeHtml(fieldFirst(r, ["phone"], "&mdash;"))}</td>
+        <td>${escapeHtml(fieldFirst(r, ["product"], "&mdash;"))}</td>
+        <td><span class="badge b-danger">${escapeHtml(fieldFirst(r, ["status"], "invalid"))}</span></td>
+        <td class="cell-sub">${escapeHtml(fieldFirst(r, ["reason"], "&mdash;"))}</td>
+      </tr>`;
+  }
+
+  document.getElementById("importBtn").addEventListener("click", async () => {
+    hideBanner("importError");
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+    if (!file) { toast("Choose a file first.", "err"); return; }
+
+    const btn = document.getElementById("importBtn");
+    btn.disabled = true;
+    btn.textContent = "Importing\u2026";
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(API_BASE_URL + "/v1/admin/leads/import", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + getAccessToken() },
+        body: formData
+      });
+
+      let result = null;
+      try { result = await response.json(); } catch (e) { result = null; }
+
+      if (!response.ok) {
+        const msg = (result && result.error && result.error.message) || "Import failed.";
+        throw new Error(msg);
+      }
+
+      const data = result && result.data ? result.data : result;
+
+      const total = fieldFirst(data, ["rows", "total_rows"], 0);
+      const accepted = fieldFirst(data, ["accepted"], 0);
+      const rejected = fieldFirst(data, ["rejected"], (data.rejection_report || []).length);
+
+      document.getElementById("importSummary").style.display = "grid";
+      document.getElementById("sumRows").textContent = total;
+      document.getElementById("sumAccepted").textContent = accepted;
+      document.getElementById("sumRejected").textContent = rejected;
+
+      const rejections = data.rejection_report || data.rejections || [];
+      if (rejections.length) {
+        document.getElementById("rejectionHeading").textContent = "Rejection report \u00b7 " + file.name + " \u00b7 " + rejections.length + " rows";
+        document.getElementById("rejectionRows").innerHTML = rejections.map(rejectionRow).join("");
+        document.getElementById("rejectionSection").style.display = "block";
+      } else {
+        document.getElementById("rejectionSection").style.display = "none";
+      }
+
+      toast("Import complete.");
+
+    } catch (error) {
+      console.error("Import error:", error);
+      showBanner("importError", error.message || "Could not import the file.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Import";
+    }
+  });
+
+</script>
+</body>
+</html>

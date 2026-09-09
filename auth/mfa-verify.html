@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <script src="../shared/js/config.js"></script>
+  <script src="../shared/js/auth.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify MFA - HomeKeep</title>
+  <link rel="stylesheet" href="../shared/css/admin.css">
+
+  <style>
+    .otp-input {
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      letter-spacing: 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .mfa-message {
+      display: none;
+      margin-top: 15px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+    .mfa-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .mfa-success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+  </style>
+</head>
+
+<body>
+
+<main class="auth">
+  <div class="auth-card">
+
+    <div class="brand-lockup">
+      <div class="brand-mark"></div>
+      <h1>Verify MFA</h1>
+      <p class="muted">Enter your authentication code</p>
+    </div>
+
+    <p style="line-height:1.6;margin-top:18px;color:var(--text-2);font-size:13.5px">
+      Open your authenticator app and enter the current 6-digit verification code.
+    </p>
+
+    <label style="margin-top:18px">
+      Authentication code
+      <input
+        id="mfaCode"
+        class="otp-input"
+        type="text"
+        inputmode="numeric"
+        maxlength="6"
+        minlength="6"
+        pattern="[0-9]{6}"
+        placeholder="000000"
+        autocomplete="one-time-code"
+        required
+      >
+    </label>
+
+    <button type="button" id="verifyMfaBtn" class="btn primary full" style="height:48px;margin-top:5px;">
+      Verify &amp; continue
+    </button>
+
+    <div id="mfaError" class="mfa-message mfa-error" role="alert"></div>
+    <div id="mfaSuccess" class="mfa-message mfa-success" role="status"></div>
+
+    <p class="mini" style="text-align:center;margin-top:20px">
+      Your verification code changes periodically.
+    </p>
+
+  </div>
+</main>
+
+<script>
+  const otpInput = document.getElementById("mfaCode");
+  const verifyButton = document.getElementById("verifyMfaBtn");
+  const mfaError = document.getElementById("mfaError");
+  const mfaSuccess = document.getElementById("mfaSuccess");
+  const challengeToken = sessionStorage.getItem("homekeep_mfa_challenge_token");
+
+  function showError(message) {
+    mfaError.textContent = message;
+    mfaError.style.display = "block";
+    mfaSuccess.textContent = "";
+    mfaSuccess.style.display = "none";
+  }
+
+  function showSuccess(message) {
+    mfaSuccess.textContent = message;
+    mfaSuccess.style.display = "block";
+    mfaError.textContent = "";
+    mfaError.style.display = "none";
+  }
+
+  otpInput.addEventListener("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 6);
+  });
+
+  async function verifyMFA() {
+    const code = otpInput.value.trim();
+
+    if (!challengeToken) {
+      showError("MFA session is missing or expired. Please sign in again.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+      showError("Please enter a valid 6-digit authentication code.");
+      otpInput.focus();
+      return;
+    }
+
+    verifyButton.disabled = true;
+    verifyButton.textContent = "Verifying...";
+
+    try {
+      const data = await verifyStaffMfa(challengeToken, code);
+
+      if (!data?.access_token || !data?.refresh_token || !data?.user) {
+        throw new Error("MFA verification succeeded but the server did not return a complete staff session.");
+      }
+
+      sessionStorage.removeItem("homekeep_mfa_challenge_token");
+      sessionStorage.removeItem("homekeep_mfa_expires_in");
+
+      showSuccess("MFA verified successfully. Redirecting...");
+      setTimeout(() => {
+        window.location.href = getAuthLandingPath();
+      }, 400);
+    } catch (error) {
+      console.error("MFA verification error:", error);
+      showError(getStaffAuthErrorMessage(error, "Invalid authentication code. Please try again."));
+      verifyButton.disabled = false;
+      verifyButton.textContent = "Verify MFA";
+      otpInput.focus();
+    }
+  }
+
+  verifyButton.addEventListener("click", verifyMFA);
+  otpInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      verifyMFA();
+    }
+  });
+
+  if (!challengeToken) {
+    showError("MFA session is missing. Please sign in again.");
+    verifyButton.disabled = true;
+  }
+</script>
+
+</body>
+</html>

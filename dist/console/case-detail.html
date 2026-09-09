@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Case - HomeKeep</title>
+  <style>
+    .case-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 1100px) { .case-grid { grid-template-columns: 1fr; } }
+    .kv-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-row .k { color: var(--muted); }
+    .kv-row .v { font-weight: 600; text-align: right; }
+    .note-item { padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
+    .note-item:last-child { border-bottom: none; }
+    .note-time { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+
+<body data-area="console">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content">
+
+    <div class="topbar">
+      <a href="service-cases.html" class="btn ghost small">&larr; Back to queue</a>
+    </div>
+
+    <div id="caseError" class="api-error-banner" role="alert"></div>
+
+    <div id="caseBody" style="display:none">
+
+      <div class="page-head">
+        <div>
+          <div class="eyebrow" id="caseEyebrow">Case</div>
+          <h2 id="caseTitle">&mdash;</h2>
+          <p class="muted" id="caseSub"></p>
+        </div>
+        <span class="badge" id="caseStatusBadge"></span>
+      </div>
+
+      <div class="case-grid">
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div class="card" style="padding:22px">
+            <div class="section-title">Move the case</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <select id="statusSelect" style="min-width:200px">
+                <option value="new">new</option>
+                <option value="routed">routed</option>
+                <option value="scheduled">scheduled</option>
+                <option value="in_progress">in_progress</option>
+                <option value="pending_parts">pending_parts</option>
+                <option value="closed">closed</option>
+                <option value="cancelled">cancelled</option>
+                <option value="reopened">reopened</option>
+              </select>
+              <button class="btn accent" id="updateStatusBtn">Update status</button>
+            </div>
+            <p class="field-hint" style="margin-top:10px">
+              PATCH /v1/console/service-cases/&#123;id&#125; &mdash; your API should reject
+              transitions the case state machine doesn't allow.
+            </p>
+          </div>
+
+          <div class="card" style="padding:22px">
+            <div class="section-title">Outcome &amp; cost &mdash; required to close</div>
+            <label>
+              Resolution
+              <select id="resolutionSelect">
+                <option value="">Not set</option>
+                <option value="fixed">fixed</option>
+                <option value="replaced">replaced</option>
+                <option value="not_faulty">not_faulty</option>
+                <option value="customer_cancelled">customer_cancelled</option>
+                <option value="unrepairable">unrepairable</option>
+              </select>
+            </label>
+            <div class="form-row">
+              <label>Cost &mdash; parts (&#8362;)
+                <input id="costParts" type="number" min="0" step="0.01" placeholder="0">
+              </label>
+              <label>Cost &mdash; labour (&#8362;)
+                <input id="costLabour" type="number" min="0" step="0.01" placeholder="0">
+              </label>
+            </div>
+            <button class="btn primary" id="saveOutcomeBtn">Save outcome &amp; close</button>
+          </div>
+
+          <div class="card" style="padding:22px">
+            <div class="section-title">Internal notes &mdash; never shown to the customer</div>
+            <div id="notesList"></div>
+            <label style="margin-top:14px">Add a note
+              <textarea id="noteInput" rows="3" placeholder="Add a note for the next advisor&hellip;"></textarea>
+            </label>
+            <button class="btn ghost" id="addNoteBtn">Add note</button>
+          </div>
+
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div class="card" style="padding:20px">
+            <div class="section-title">Customer</div>
+            <div id="customerBlock"></div>
+            <a id="customerLink" class="btn soft small full" style="margin-top:12px">Open the 360 view &rarr;</a>
+          </div>
+
+          <div class="card" style="padding:20px">
+            <div class="section-title">Product</div>
+            <div id="productBlock"></div>
+          </div>
+
+          <div class="card" style="padding:20px">
+            <div class="section-title">Coverage &amp; SLA</div>
+            <div id="slaBlock"></div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("service-cases");
+
+  const caseId = qs("id");
+  if (!caseId) {
+    showBanner("caseError", "No case id was given. Go back to the queue and open a case from there.");
+  }
+
+  let currentCase = null;
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  function kv(k, v) {
+    return `<div class="kv-row"><span class="k">${escapeHtml(k)}</span><span class="v">${v}</span></div>`;
+  }
+
+  function renderCase(item) {
+    currentCase = item;
+
+    const caseNo = fieldFirst(item, ["case_number", "reference", "id"], caseId);
+    const opened = fieldFirst(item, ["opened_at", "created_at"], null);
+    const status = fieldFirst(item, ["status"], "&mdash;");
+    const faultTitle = fieldFirst(item, ["fault_type", "title", "fault_description"], "Service case");
+
+    document.getElementById("caseEyebrow").textContent = "Case #" + caseNo + (opened ? " · opened " + fmtDateTime(opened) : "");
+    document.getElementById("caseTitle").textContent = faultTitle;
+    document.getElementById("caseSub").textContent = fieldFirst(item, ["fault_description"], "");
+    const badge = document.getElementById("caseStatusBadge");
+    badge.textContent = status;
+    badge.className = "badge " + statusBadgeClass(status);
+
+    document.getElementById("statusSelect").value = status;
+    document.getElementById("resolutionSelect").value = fieldFirst(item, ["resolution"], "");
+    document.getElementById("costParts").value = fieldFirst(item, ["cost_parts"], "");
+    document.getElementById("costLabour").value = fieldFirst(item, ["cost_labour"], "");
+
+    const customer = item.customer || {};
+    document.getElementById("customerBlock").innerHTML =
+      kv("Name", escapeHtml(fieldFirst(customer, ["name"], item.customer_name || "&mdash;"))) +
+      kv("Phone", escapeHtml(fieldFirst(customer, ["phone"], item.customer_phone || "&mdash;"))) +
+      kv("Address", escapeHtml(fieldFirst(customer, ["address"], "&mdash;")));
+    const custId = fieldFirst(customer, ["id"], item.customer_id || "");
+    const custLink = document.getElementById("customerLink");
+    if (custId) {
+      custLink.href = "customer-detail.html?id=" + encodeURIComponent(custId);
+    } else {
+      custLink.style.display = "none";
+    }
+
+    const product = item.product || {};
+    document.getElementById("productBlock").innerHTML =
+      kv("Product", escapeHtml(fieldFirst(product, ["name"], item.product_name || "&mdash;"))) +
+      kv("Model", escapeHtml(fieldFirst(product, ["model"], "&mdash;"))) +
+      kv("Serial", escapeHtml(fieldFirst(product, ["serial", "serial_number"], "&mdash;")));
+
+    const slaBreached = item.sla_breached === true;
+    document.getElementById("slaBlock").innerHTML =
+      kv("Coverage", escapeHtml(fieldFirst(item, ["coverage_source"], "&mdash;"))) +
+      kv("Provider", escapeHtml(fieldFirst(item.provider || {}, ["name"], item.provider_name || "not routed"))) +
+      kv("SLA", slaBreached ? '<span class="badge b-danger">breached</span>' : escapeHtml(item.sla_due_at ? "due " + fmtDateTime(item.sla_due_at) : "&mdash;")) +
+      kv("Assigned to", escapeHtml(fieldFirst(item, ["assigned_to_name", "assigned_to"], "unassigned")));
+
+    const notes = item.notes || item.internal_notes || [];
+    document.getElementById("notesList").innerHTML = notes.length
+      ? notes.map(n => `<div class="note-item">${escapeHtml(n.note || n.text || n)}<div class="note-time">${n.created_at ? fmtDateTime(n.created_at) : ""}${n.author ? " · " + escapeHtml(n.author) : ""}</div></div>`).join("")
+      : '<p class="muted mini">No notes yet.</p>';
+
+    document.getElementById("caseBody").style.display = "block";
+  }
+
+  async function loadCase() {
+    if (!caseId) return;
+    hideBanner("caseError");
+    try {
+      const data = await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), { method: "GET" });
+      renderCase(data);
+    } catch (error) {
+      console.error("Case load error:", error);
+      showBanner("caseError", error.message || "Unable to load this case.");
+    }
+  }
+
+  document.getElementById("updateStatusBtn").addEventListener("click", async () => {
+    const status = document.getElementById("statusSelect").value;
+    try {
+      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), {
+        method: "PATCH",
+        body: { status }
+      });
+      toast("Case moved to " + status);
+      loadCase();
+    } catch (error) {
+      toast(error.message || "Could not update the case status.", "err");
+    }
+  });
+
+  document.getElementById("saveOutcomeBtn").addEventListener("click", async () => {
+    const resolution = document.getElementById("resolutionSelect").value;
+    const cost_parts = document.getElementById("costParts").value;
+    const cost_labour = document.getElementById("costLabour").value;
+
+    if (!resolution) {
+      toast("Pick a resolution before closing the case.", "err");
+      return;
+    }
+
+    try {
+      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), {
+        method: "PATCH",
+        body: {
+          status: "closed",
+          resolution,
+          cost_parts: cost_parts ? Number(cost_parts) : undefined,
+          cost_labour: cost_labour ? Number(cost_labour) : undefined
+        }
+      });
+      toast("Case closed.");
+      loadCase();
+    } catch (error) {
+      toast(error.message || "Could not close the case.", "err");
+    }
+  });
+
+  document.getElementById("addNoteBtn").addEventListener("click", async () => {
+    const noteInput = document.getElementById("noteInput");
+    const note = noteInput.value.trim();
+    if (!note) return;
+    try {
+      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId) + "/notes", {
+        method: "POST",
+        body: { note }
+      });
+      noteInput.value = "";
+      toast("Note added.");
+      loadCase();
+    } catch (error) {
+      toast(error.message || "Could not add the note.", "err");
+    }
+  });
+
+  loadCase();
+
+</script>
+
+</body>
+</html>

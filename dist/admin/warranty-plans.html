@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Plans &amp; pricing - HomeKeep</title>
+  <link rel="stylesheet" crossorigin href="/assets/admin-DjybFkhS.css">
+</head>
+<body data-area="admin">
+<div class="app">
+  <aside id="sidebar"></aside>
+  <main class="content">
+    <div class="topbar"><span>HomeKeep Admin</span></div>
+    <div id="pageError" class="api-error-banner" role="alert"></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow" id="pageEyebrow"></div>
+        <h2 id="pageTitle"></h2>
+        <p class="muted" id="pageSubtitle"></p>
+      </div>
+      <button class="btn accent" id="newBtn"></button>
+    </div>
+
+    <div class="card" id="formPanel" style="display:none;padding:22px;margin-bottom:20px">
+      <div class="section-title" id="formTitle"></div>
+      <div id="formFields"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="saveFormBtn">Save</button>
+        <button class="btn ghost" id="cancelFormBtn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar"><div class="muted mini" id="rowCount"></div></div>
+      <table class="data-table">
+        <thead><tr id="theadRow"></tr></thead>
+        <tbody id="rows"><tr><td colspan="8"><div class="skeleton-line" style="width:100%"></div></td></tr></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none"><h3>Nothing here yet</h3><p>Create the first one above.</p></div>
+    </div>
+
+  </main>
+</div>
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script src="../shared/js/admin-crud.js"></script>
+<script>
+
+renderCrudPage({
+  navKey: "warranty-plans",
+  eyebrow: "Configuration \u00b7 warranty_plans",
+  title: "Plans & pricing",
+  subtitle: "Editing a plan changes future sales only \u2014 every warranty already sold keeps the plan_snapshot taken when it went active. This can never alter an existing policy.",
+  listPath: "/v1/admin/warranty-plans",
+  createLabel: "+ New plan",
+  toggleField: "is_active",
+  columns: [
+    { label: "Plan", render: p => `<span class="cell-primary">${escapeHtml(fieldFirst(p,["name"],"\u2014"))}</span>` },
+    { label: "Term", render: p => (fieldFirst(p,["duration_months"],"\u2014")) + " mo" },
+    { label: "Base price", render: p => "\u20aa" + (fieldFirst(p,["price"],0) / 100).toLocaleString() },
+    { label: "Deductible", render: p => "\u20aa" + ((fieldFirst(p,["deductible"],0)) / 100).toLocaleString() },
+    { label: "Waiting", render: p => (fieldFirst(p,["waiting_period_days"],"\u2014")) + " d" },
+    { label: "Age window", render: p => (fieldFirst(p,["min_age_months"],0)) + "\u2013" + (fieldFirst(p,["max_age_months"],"\u2014")) + " mo" }
+  ],
+  fields: [
+    { key: "name", label: "Plan name", type: "text", placeholder: "EW-36" },
+    { key: "category_id", label: "Category id", type: "text", hint: "uuid from Categories" },
+    { key: "duration_months", label: "Duration (months)", type: "number", placeholder: "36" },
+    { key: "price", label: "Base price (agorot)", type: "number", hint: "in agorot \u2014 100 = \u20aa1, so \u20aa690 = 69000", placeholder: "69000" },
+    { key: "deductible", label: "Deductible (agorot)", type: "number", placeholder: "0" },
+    { key: "waiting_period_days", label: "Waiting period (days)", type: "number", placeholder: "30" },
+    { key: "max_claims", label: "Max claims (blank = unlimited)", type: "number" },
+    { key: "min_age_months", label: "Min product age (months)", type: "number", placeholder: "0" },
+    { key: "max_age_months", label: "Max product age (months)", type: "number", placeholder: "60" },
+    { key: "pricing_rule", label: "Pricing rule (JSON)", type: "textarea", json: true, rows: 6,
+      placeholder: '{ "age_bands": [{"to":12,"f":1.0}], "value_bands": [{"to":200000,"f":0.8}], "round_to": 1000, "floor": 19000, "ceiling": 99000 }' },
+    { key: "exclusions", label: "Exclusions (JSON)", type: "textarea", json: true, placeholder: '{ "fault_types": ["cosmetic_damage"] }' },
+    { key: "terms_version", label: "Terms version", type: "text", placeholder: "2026-08" },
+    { key: "is_active", label: "Active (offered to new customers)", type: "checkbox", default: true }
+  ]
+});
+
+</script>
+</body>
+</html>

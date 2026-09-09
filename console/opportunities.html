@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Opportunities - HomeKeep</title>
+  <link rel="stylesheet" href="../shared/css/admin.css">
+</head>
+
+<body data-area="console">
+
+<div class="app">
+
+  <aside id="sidebar"></aside>
+
+  <main class="content">
+
+    <div class="topbar"><span>HomeKeep Console</span></div>
+
+    <div id="oppError" class="api-error-banner" role="alert"></div>
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Sales</div>
+        <h2>Opportunities</h2>
+        <p class="muted">Replacement &amp; extended-protection opportunities the NBA engine has surfaced.</p>
+      </div>
+      <button class="btn accent" id="newOppBtn">+ New opportunity</button>
+    </div>
+
+    <div class="card" id="newOppForm" style="display:none;padding:22px;margin-bottom:20px">
+      <div class="section-title">New opportunity</div>
+      <div class="form-row">
+        <label>Customer id <input id="oppCustomer" type="text" placeholder="cust_..."></label>
+        <label>Product id <input id="oppProduct" type="text" placeholder="prod_..."></label>
+      </div>
+      <div class="form-row">
+        <label>Type
+          <select id="oppType">
+            <option value="replacement">replacement</option>
+            <option value="protection">protection</option>
+          </select>
+        </label>
+        <label>Score <input id="oppScore" type="number" min="0" max="100" placeholder="0-100"></label>
+      </div>
+      <label>Reason <input id="oppReason" type="text" placeholder="Why this opportunity exists"></label>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="createOppBtn">Create</button>
+        <button class="btn ghost" id="cancelOppBtn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="pill-tabs" id="stageTabs">
+          <button class="active" data-stage="">All</button>
+          <button data-stage="OPEN">Open</button>
+          <button data-stage="WON">Won</button>
+          <button data-stage="LOST">Lost</button>
+        </div>
+        <div class="muted mini" id="rowCount"></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Customer</th><th>Product</th><th>Type</th><th>Score</th><th>Reason</th><th>Stage</th></tr></thead>
+        <tbody id="oppRows"><tr><td colspan="6"><div class="skeleton-line" style="width:100%"></div></td></tr></tbody>
+      </table>
+      <div id="oppEmpty" class="empty-state" style="display:none">
+        <h3>No opportunities</h3>
+        <p>Nothing in the pipeline for this filter.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../shared/js/config.js"></script>
+<script src="../shared/js/api.js"></script>
+<script>
+
+  renderSidebar("opportunities");
+
+  let currentStage = "";
+
+  function fieldFirst(obj, keys, fallback) {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return fallback;
+  }
+
+  function stageOptions(current) {
+    return ["OPEN", "WON", "LOST"].map(s => `<option value="${s}" ${s === current ? "selected" : ""}>${s}</option>`).join("");
+  }
+
+  function rowHtml(o) {
+    const id = fieldFirst(o, ["id", "opportunity_id"], "");
+    const customer = fieldFirst(o, ["customer_name"], (o.customer && o.customer.name) || o.customer_id || "&mdash;");
+    const product = fieldFirst(o, ["product_name"], (o.product && o.product.name) || o.product_id || "&mdash;");
+    const type = fieldFirst(o, ["type"], "&mdash;");
+    const score = fieldFirst(o, ["score"], "&mdash;");
+    const reason = fieldFirst(o, ["reason"], "");
+    const stage = fieldFirst(o, ["stage"], "OPEN");
+
+    return `
+      <tr data-id="${escapeHtml(id)}">
+        <td class="cell-primary">${escapeHtml(customer)}</td>
+        <td>${escapeHtml(product)}</td>
+        <td><span class="badge b-accent">${escapeHtml(type)}</span></td>
+        <td>${escapeHtml(score)}</td>
+        <td class="cell-sub" style="max-width:280px">${escapeHtml(reason)}</td>
+        <td>
+          <select class="stage-select" data-id="${escapeHtml(id)}" style="padding:6px 8px;font-size:12.5px">
+            ${stageOptions(stage)}
+          </select>
+        </td>
+      </tr>`;
+  }
+
+  async function loadOpportunities() {
+    hideBanner("oppError");
+    const tbody = document.getElementById("oppRows");
+    const empty = document.getElementById("oppEmpty");
+
+    try {
+      const data = await authFetch("/v1/console/opportunities?page=1&per_page=50", { method: "GET" });
+      let items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
+      if (currentStage) items = items.filter(o => (o.stage || "OPEN") === currentStage);
+
+      document.getElementById("rowCount").textContent = items.length + " opportunit" + (items.length === 1 ? "y" : "ies");
+
+      if (!items.length) {
+        tbody.innerHTML = "";
+        empty.style.display = "block";
+      } else {
+        empty.style.display = "none";
+        tbody.innerHTML = items.map(rowHtml).join("");
+        tbody.querySelectorAll(".stage-select").forEach(sel => {
+          sel.addEventListener("change", async () => {
+            try {
+              await authFetch("/v1/console/opportunities/" + encodeURIComponent(sel.dataset.id), {
+                method: "PATCH",
+                body: { stage: sel.value }
+              });
+              toast("Opportunity updated.");
+            } catch (error) {
+              toast(error.message || "Could not update the opportunity.", "err");
+              loadOpportunities();
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Opportunities error:", error);
+      tbody.innerHTML = "";
+      showBanner("oppError", error.message || "Unable to load opportunities.");
+    }
+  }
+
+  document.querySelectorAll("#stageTabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#stageTabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentStage = btn.dataset.stage;
+      loadOpportunities();
+    });
+  });
+
+  document.getElementById("newOppBtn").addEventListener("click", () => {
+    document.getElementById("newOppForm").style.display = "block";
+  });
+  document.getElementById("cancelOppBtn").addEventListener("click", () => {
+    document.getElementById("newOppForm").style.display = "none";
+  });
+
+  document.getElementById("createOppBtn").addEventListener("click", async () => {
+    const customer_id = document.getElementById("oppCustomer").value.trim();
+    const product_id = document.getElementById("oppProduct").value.trim();
+    const type = document.getElementById("oppType").value;
+    const score = Number(document.getElementById("oppScore").value || 0);
+    const reason = document.getElementById("oppReason").value.trim();
+
+    if (!customer_id || !product_id) {
+      toast("Customer id and product id are required.", "err");
+      return;
+    }
+
+    try {
+      await authFetch("/v1/console/opportunities", {
+        method: "POST",
+        body: { customer_id, product_id, type, score, reason }
+      });
+      toast("Opportunity created.");
+      document.getElementById("newOppForm").style.display = "none";
+      ["oppCustomer","oppProduct","oppScore","oppReason"].forEach(id => document.getElementById(id).value = "");
+      loadOpportunities();
+    } catch (error) {
+      toast(error.message || "Could not create the opportunity.", "err");
+    }
+  });
+
+  loadOpportunities();
+
+</script>
+
+</body>
+</html>
