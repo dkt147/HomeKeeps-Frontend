@@ -1,48 +1,35 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Stores - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stores - HomeKeep</title>
+<link rel="stylesheet" href="../shared/css/admin.css">
 </head>
 <body data-area="admin">
-<div class="app">
-  <aside id="sidebar"></aside>
-  <main class="content">
-    <div class="topbar"><span>HomeKeep Admin</span></div>
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Configuration &middot; stores</div>
-        <h2>Stores</h2>
-        <p class="muted">Where a product was purchased &mdash; referenced by products.store_id.</p>
-      </div>
-    </div>
-
-    <div class="table-card" style="margin-bottom:20px">
-      <div class="table-toolbar"><div class="section-title" style="margin:0">Preview layout &mdash; static, no API wired yet</div></div>
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Chain</th><th>Phone</th></tr></thead>
-        <tbody>
-          <tr><td class="cell-primary">Electra Home &mdash; Rishon LeZion</td><td>Electra Home</td><td class="cell-sub">*2200</td></tr>
-          <tr><td class="cell-primary">KSP Online</td><td>KSP</td><td class="cell-sub">*5454</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card" style="padding:22px;border-left:3px solid var(--accent)">
-      <div class="section-title">Needs an API</div>
-      <p style="font-size:13.5px;line-height:1.6;color:var(--text-2)">
-        The schema (&sect;5.6) defines <code>stores</code> &mdash; <code>name, chain, phone</code> &mdash;
-        and it's listed under Configuration in &sect;9.2, but no CRUD endpoint for it made it into
-        &sect;7.4. Give me <code>CRUD /v1/admin/stores</code> and this wires up exactly like
-        <a href="manufacturers.html" class="btn link">Manufacturers</a>.
-      </p>
-    </div>
-  </main>
+<div class="app"><aside id="sidebar"></aside><main class="content">
+<div id="pageError" class="api-error-banner" role="alert"></div>
+<div class="page-head"><div><div class="eyebrow">Configuration · stores</div><h2>Stores</h2><p class="muted">Manage stores used on product records.</p></div><button class="btn accent" id="newBtn">+ New store</button></div>
+<div class="card" id="formPanel" style="display:none;padding:22px;margin-bottom:20px">
+<div class="section-title" id="formTitle">New store</div>
+<div class="form-row">
+<label>Name<input id="name"></label>
+<label>Chain<input id="chain"></label>
 </div>
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
-<script>renderSidebar("stores");</script>
-</body>
-</html>
+<label>Phone<input id="phone"></label>
+<div style="display:flex;gap:10px"><button class="btn primary" id="saveBtn">Save</button><button class="btn ghost" id="cancelBtn">Cancel</button></div>
+</div>
+<div class="table-card"><div class="table-toolbar"><div class="muted mini" id="count"></div></div>
+<table class="data-table"><thead><tr><th>Name</th><th>Chain</th><th>Phone</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+<div id="empty" class="empty-state" style="display:none"><h3>No stores</h3><p>Create the first store.</p></div></div>
+</main></div>
+<script src="../shared/js/config.js"></script><script src="../shared/js/api.js"></script>
+<script>
+renderSidebar("stores");
+let items=[], editingId=null;
+const $=id=>document.getElementById(id);
+function reset(){editingId=null;$("formPanel").style.display="none";["name","chain","phone"].forEach(id=>$(id).value="");}
+function openForm(item=null){editingId=item?item._id||item.id:null;$("formTitle").textContent=item?"Edit store":"New store";$("name").value=item?.name||"";$("chain").value=item?.chain||"";$("phone").value=item?.phone||"";$("formPanel").style.display="block";$("formPanel").scrollIntoView({behavior:"smooth",block:"nearest"});}
+async function load(){hideBanner("pageError");try{items=await authFetch("/v1/admin/stores",{method:"GET"});items=Array.isArray(items)?items:(items.items||items.data||[]);$("count").textContent=items.length+" stores";$("empty").style.display=items.length?"none":"block";$("rows").innerHTML=items.map(s=>`<tr><td class="cell-primary">${escapeHtml(s.name||"—")}</td><td>${escapeHtml(s.chain||"—")}</td><td>${escapeHtml(s.phone||"—")}</td><td><button class="btn ghost small" data-edit="${escapeHtml(s._id||s.id)}">Edit</button><button class="btn ghost small" data-del="${escapeHtml(s._id||s.id)}" style="color:var(--danger)">Delete</button></td></tr>`).join("");document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openForm(items.find(x=>String(x._id||x.id)===String(b.dataset.edit))));document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Deactivate this store?"))return;try{await authFetch("/v1/admin/stores/"+encodeURIComponent(b.dataset.del),{method:"DELETE"});toast("Store deactivated.");load()}catch(e){toast(e.message,"err")}})}catch(e){showBanner("pageError",e.message||"Unable to load stores.")}}
+$("newBtn").onclick=()=>openForm();$("cancelBtn").onclick=reset;
+$("saveBtn").onclick=async()=>{const payload={name:$("name").value.trim(),chain:$("chain").value.trim()||null,phone:$("phone").value.trim()||null};if(!payload.name){toast("Store name is required.","err");return}const b=$("saveBtn");b.disabled=true;try{await authFetch("/v1/admin/stores"+(editingId?"/"+encodeURIComponent(editingId):""),{method:editingId?"PATCH":"POST",body:payload});toast(editingId?"Store updated.":"Store created.");reset();load()}catch(e){toast(e.message||"Could not save store.","err")}finally{b.disabled=false}};load();
+</script></body></html>

@@ -401,7 +401,7 @@ const ADMIN_NAV = [
     items: [
       { key: "warranty-plans", href: "warranty-plans.html", icon: "&#128196;", label: "Plans &amp; pricing", roles: ["business_admin"] },
       { key: "eligibility-rules", href: "eligibility-rules.html", icon: "&#9989;", label: "Eligibility rules", roles: ["business_admin"] },
-      { key: "product-categories", href: "product-categories.html", icon: "&#9638;", label: "Categories", roles: ["ops_admin", "business_admin"] },
+      { key: "product-categories", href: "product-categories.html", icon: "&#9638;", label: "Categories", roles: ["ops_admin"] },
       { key: "manufacturers", href: "manufacturers.html", icon: "&#127970;", label: "Manufacturers", roles: ["ops_admin", "business_admin"] },
       { key: "service-providers", href: "service-providers.html", icon: "&#128295;", label: "Service providers", roles: ["ops_admin", "business_admin"] },
       { key: "stores", href: "stores.html", icon: "&#127978;", label: "Stores", roles: ["ops_admin", "business_admin"] }

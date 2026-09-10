@@ -1,120 +1,16 @@
 <!doctype html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Warranty sale - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
-</head>
-
-<body data-area="console">
-
-<div class="app">
-
-  <aside id="sidebar"></aside>
-
-  <main class="content" style="max-width:640px">
-
-    <div class="topbar">
-      <a href="#" id="backLink" class="btn ghost small">&larr; Back to customer</a>
-    </div>
-
-    <div id="saleError" class="api-error-banner" role="alert"></div>
-    <div id="saleNotice" class="card" style="padding:14px 16px;margin-bottom:18px;border-left:3px solid var(--accent);display:none">
-      <p class="mini" style="color:var(--text-2)">
-        Your API currently exposes <code>POST /v1/console/warranties</code> (product_id + plan_id) but no
-        endpoint to list available plans yet. Until <code>GET .../warranty-plans</code> exists, pick the
-        plan id manually below &mdash; swap this for a real dropdown once that endpoint is ready.
-      </p>
-    </div>
-
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Extended protection</div>
-        <h2>Sell a warranty</h2>
-        <p class="muted">Price is computed server-side. The agent can't override it.</p>
-      </div>
-    </div>
-
-    <div class="card" style="padding:24px">
-
-      <label>Customer id
-        <input id="customerIdInput" type="text" placeholder="cust_...">
-      </label>
-      <label>Product id
-        <input id="productIdInput" type="text" placeholder="prod_...">
-      </label>
-      <label>Plan id
-        <input id="planIdInput" type="text" placeholder="plan_ew36...">
-        <span class="field-hint">e.g. the EW-24 / EW-36 / EW-60 plan id from your plans table.</span>
-      </label>
-
-      <div class="divider"></div>
-
-      <p class="muted" style="font-size:13px;line-height:1.5">
-        A payment link is sent to the customer by WhatsApp and push. They pay on the provider's hosted
-        page &mdash; card details never reach HomeKeep. On success the warranty goes <strong>active</strong>
-        and the plan terms are frozen into a <code>plan_snapshot</code>.
-      </p>
-
-      <button class="btn primary full" style="height:48px;margin-top:16px" id="sendLinkBtn">
-        Send payment link
-      </button>
-
-    </div>
-
-  </main>
-</div>
-
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Warranty sale - HomeKeep</title><link rel="stylesheet" href="../shared/css/admin.css"></head>
+<body data-area="console"><div class="app"><aside id="sidebar"></aside><main class="content" style="max-width:760px">
+<div class="topbar"><a id="backLink" href="customers.html" class="btn ghost small">← Back to customer</a></div>
+<div id="saleError" class="api-error-banner" role="alert"></div>
+<div class="page-head"><div><div class="eyebrow">Extended protection</div><h2>Sell a warranty</h2><p class="muted">Eligibility and pricing are calculated by the server. Card details never reach HomeKeep.</p></div></div>
+<div class="card" style="padding:24px"><div id="productBlock"></div><div class="divider"></div><label>Warranty plan<select id="plan"><option value="">Loading eligible plans…</option></select></label><div id="planDetails" class="card" style="padding:16px;margin-top:14px;display:none"></div><label style="display:flex;gap:8px;align-items:flex-start;margin-top:16px"><input id="terms" type="checkbox" style="width:auto;margin-top:3px"><span>I confirm the customer has accepted the warranty terms shown above.</span></label><button class="btn primary full" id="sendBtn" style="margin-top:18px;height:48px">Create payment link</button></div>
+</main></div>
+<script src="../shared/js/config.js"></script><script src="../shared/js/api.js"></script>
 <script>
-
-  renderSidebar("customers");
-
-  const customerId = qs("customer_id") || "";
-  const productId = qs("product_id") || "";
-
-  document.getElementById("customerIdInput").value = customerId;
-  document.getElementById("productIdInput").value = productId;
-
-  const backLink = document.getElementById("backLink");
-  backLink.href = customerId ? "customer-detail.html?id=" + encodeURIComponent(customerId) : "customers.html";
-
-  document.getElementById("saleNotice").style.display = "block";
-
-  document.getElementById("sendLinkBtn").addEventListener("click", async () => {
-    hideBanner("saleError");
-    const product_id = document.getElementById("productIdInput").value.trim();
-    const plan_id = document.getElementById("planIdInput").value.trim();
-
-    if (!product_id || !plan_id) {
-      showBanner("saleError", "Product id and plan id are both required.");
-      return;
-    }
-
-    const btn = document.getElementById("sendLinkBtn");
-    btn.disabled = true;
-    btn.textContent = "Sending&hellip;";
-
-    try {
-      await authFetch("/v1/console/warranties", {
-        method: "POST",
-        body: { product_id, plan_id }
-      });
-      toast("Payment link sent.");
-      setTimeout(() => {
-        window.location.href = customerId ? "customer-detail.html?id=" + encodeURIComponent(customerId) : "customers.html";
-      }, 600);
-    } catch (error) {
-      showBanner("saleError", error.message || "Could not send the payment link.");
-      btn.disabled = false;
-      btn.textContent = "Send payment link";
-    }
-  });
-
-</script>
-
-</body>
-</html>
+renderSidebar("customers");const customerId=qs("customer_id")||"",productId=qs("product_id")||"";const $=id=>document.getElementById(id);$("backLink").href=customerId?"customer-detail.html?id="+encodeURIComponent(customerId):"customers.html";let product=null,plans=[];
+function money(v){return v==null?"—":"₪"+(Number(v)/100).toLocaleString(undefined,{minimumFractionDigits:2})}
+async function load(){if(!customerId||!productId){showBanner("saleError","Customer and product are required.");return}try{const d=await authFetch("/v1/console/customers/"+encodeURIComponent(customerId),{method:"GET"});product=(d.products||[]).find(p=>String(p._id||p.id)===String(productId));if(!product)throw new Error("Product was not found for this customer.");$("productBlock").innerHTML=`<div class="section-title">${escapeHtml(product.name||product.product_name||"Product")}</div><div class="mini">Model: ${escapeHtml(product.model||"—")} · Serial: ${escapeHtml(product.serial_number||"—")}</div>`;const categoryId=product.category_id;if(!categoryId)throw new Error("Product category is missing, so eligible plans cannot be calculated.");const pd=await authFetch("/v1/admin/warranty-plans?category_id="+encodeURIComponent(categoryId)+"&is_active=true&page=1&per_page=100",{method:"GET"});plans=Array.isArray(pd)?pd:(pd.data||pd.items||[]);if(!plans.length){$("plan").innerHTML='<option value="">No active plans available</option>';return}$("plan").innerHTML='<option value="">Select an eligible plan…</option>'+plans.map(p=>`<option value="${escapeHtml(p._id||p.id)}">${escapeHtml(p.name||"Plan")} · ${money(p.price)}</option>`).join("")}catch(e){showBanner("saleError",e.message||"Unable to prepare warranty sale.")}}
+$("plan").onchange=()=>{const p=plans.find(x=>String(x._id||x.id)===String($("plan").value));$("planDetails").style.display=p?"block":"none";if(p)$("planDetails").innerHTML=`<strong>${escapeHtml(p.name)}</strong><div class="product-grid" style="margin-top:10px"><div class="product-field"><div class="product-field-label">Base price</div><div class="product-field-value">${money(p.price)}</div></div><div class="product-field"><div class="product-field-label">Duration</div><div class="product-field-value">${escapeHtml(p.duration_months)} months</div></div><div class="product-field"><div class="product-field-label">Waiting period</div><div class="product-field-value">${escapeHtml(p.waiting_period_days)} days</div></div><div class="product-field"><div class="product-field-label">Deductible</div><div class="product-field-value">${money(p.deductible)}</div></div><div class="product-field"><div class="product-field-label">Max claims</div><div class="product-field-value">${escapeHtml(p.max_claims??"Unlimited")}</div></div></div><div style="margin-top:12px"><strong>Exclusions</strong><pre style="white-space:pre-wrap;font-size:12px">${escapeHtml(JSON.stringify(p.exclusions||[],null,2))}</pre></div>`};
+$("sendBtn").onclick=async()=>{hideBanner("saleError");const planId=$("plan").value;if(!planId){showBanner("saleError","Select a warranty plan.");return}if(!$("terms").checked){showBanner("saleError","The customer must accept the warranty terms before purchase.");return}const b=$("sendBtn");b.disabled=true;b.textContent="Creating payment link…";try{const idem=crypto.randomUUID();const result=await authFetch("/v1/console/warranties",{method:"POST",headers:{"Idempotency-Key":idem},body:{customer_id:customerId,product_id:productId,plan_id:planId,terms_accepted:true}});const url=result?.redirect_url||result?.payment_url||result?.checkout_url;if(url)window.open(url,"_blank","noopener");toast("Payment link created.");}catch(e){showBanner("saleError",e.message||"Could not create payment link.")}finally{b.disabled=false;b.textContent="Create payment link"}};load();
+</script></body></html>

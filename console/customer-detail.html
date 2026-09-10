@@ -1,240 +1,1596 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Customer 360 - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
-  <style>
-    .c360-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; align-items: start; margin-top: 18px; }
-    @media (max-width: 1100px) { .c360-grid { grid-template-columns: 1fr; } }
-    .interaction-item { padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
-    .interaction-item:last-child { border-bottom: none; }
-  </style>
-</head>
+    <title>Customer 360 - HomeKeep</title>
 
-<body data-area="console">
+    <link rel="stylesheet" href="../shared/css/admin.css" />
 
-<div class="app">
-
-  <aside id="sidebar"></aside>
-
-  <main class="content">
-
-    <div class="topbar">
-      <a href="customers.html" class="btn ghost small">&larr; Back to search</a>
-    </div>
-
-    <div id="custError" class="api-error-banner" role="alert"></div>
-
-    <div id="custBody" style="display:none">
-
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Customer 360</div>
-          <h2 id="custName">&mdash;</h2>
-          <p class="muted" id="custMeta"></p>
-        </div>
-      </div>
-
-      <div class="stats">
-        <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Products</span><span id="statProducts" class="stat-value">&mdash;</span></div>
-        <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Covered</span><span id="statCovered" class="stat-value">&mdash;</span></div>
-        <div class="stat stat-card alert"><span class="stat-label"><span class="dot"></span>Open cases</span><span id="statOpenCases" class="stat-value">&mdash;</span></div>
-        <div class="stat stat-card"><span class="stat-label"><span class="dot"></span>Lifetime premium</span><span id="statPremium" class="stat-value">&mdash;</span></div>
-      </div>
-
-      <div class="c360-grid">
-
-        <div style="display:flex;flex-direction:column;gap:16px">
-
-          <div class="table-card">
-            <div class="table-toolbar"><div class="section-title" style="margin:0">Products</div></div>
-            <table class="data-table">
-              <thead>
-                <tr><th>Product</th><th>Serial</th><th>Status</th><th>Coverage</th><th>Health</th><th></th></tr>
-              </thead>
-              <tbody id="productsRows"></tbody>
-            </table>
-          </div>
-
-          <div class="card" style="padding:20px">
-            <div class="section-title">Interactions</div>
-            <div id="interactionsList"></div>
-            <div class="divider"></div>
-            <div class="form-row">
-              <label>Channel
-                <select id="interactionChannel">
-                  <option value="phone">phone</option>
-                  <option value="whatsapp">whatsapp</option>
-                  <option value="email">email</option>
-                  <option value="in_app">in_app</option>
-                </select>
-              </label>
-              <label>Direction
-                <select id="interactionDirection">
-                  <option value="outbound">outbound</option>
-                  <option value="inbound">inbound</option>
-                </select>
-              </label>
-            </div>
-            <label>Notes
-              <textarea id="interactionNotes" rows="2" placeholder="What happened on this contact?"></textarea>
-            </label>
-            <button class="btn ghost" id="logInteractionBtn">Log interaction</button>
-          </div>
-
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:16px">
-
-          <div class="hero-card" id="nbaCard">
-            <div class="eyebrow">Next best action</div>
-            <h3 id="nbaTitle">Loading&hellip;</h3>
-            <p id="nbaBody"></p>
-            <button class="btn full" style="margin-top:14px;background:#fff;color:var(--indigo-800)" id="nbaAction">View</button>
-          </div>
-
-          <div class="card" style="padding:20px">
-            <div class="section-title">Contact</div>
-            <div id="contactBlock"></div>
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
-<script>
-
-  renderSidebar("customers");
-
-  const customerId = qs("id");
-  if (!customerId) showBanner("custError", "No customer id was given. Go back and open a customer from search.");
-
-  function fieldFirst(obj, keys, fallback) {
-    for (const k of keys) {
-      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
-    }
-    return fallback;
-  }
-
-  function kv(k, v) {
-    return `<div class="kv-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:13.5px"><span class="muted">${escapeHtml(k)}</span><span style="font-weight:600;text-align:right">${v}</span></div>`;
-  }
-
-  function productRow(p) {
-    const pid = fieldFirst(p, ["id", "product_id"], "");
-    const name = fieldFirst(p, ["name", "product_name"], "&mdash;");
-    const serial = fieldFirst(p, ["serial", "serial_number"], "&mdash;");
-    const status = fieldFirst(p, ["status"], "&mdash;");
-    const coverageUntil = fieldFirst(p, ["coverage_until", "warranty_end"], null);
-    const health = fieldFirst(p, ["health_score"], null);
-    const covered = status === "active" || !!coverageUntil;
-
-    return `
-      <tr>
-        <td class="cell-primary">${escapeHtml(name)}</td>
-        <td class="cell-sub">${escapeHtml(serial)}</td>
-        <td><span class="badge ${statusBadgeClass(status)}">${escapeHtml(status)}</span></td>
-        <td>${coverageUntil ? fmtDate(coverageUntil) : '<span class="mini">no coverage</span>'}</td>
-        <td>${health !== null ? health : "&mdash;"}</td>
-        <td><a class="btn small soft" href="sale.html?customer_id=${encodeURIComponent(customerId)}&product_id=${encodeURIComponent(pid)}">Sell warranty</a></td>
-      </tr>`;
-  }
-
-  function renderCustomer(c) {
-    document.getElementById("custName").textContent = fieldFirst(c, ["name", "full_name"], "Customer");
-    document.getElementById("custMeta").textContent =
-      [fieldFirst(c, ["phone"], ""), fieldFirst(c, ["email"], ""), fieldFirst(c, ["address"], (c.address && c.address.line1) || "")]
-        .filter(Boolean).join(" · ");
-
-    document.getElementById("statProducts").textContent = fieldFirst(c, ["product_count", "products_count"], (c.products || []).length);
-    document.getElementById("statCovered").textContent = fieldFirst(c, ["covered_count"], "&mdash;");
-    document.getElementById("statOpenCases").textContent = fieldFirst(c, ["open_cases", "open_case_count"], "0");
-    document.getElementById("statPremium").textContent = fieldFirst(c, ["lifetime_premium"], null) !== null
-      ? "\u20aa" + fieldFirst(c, ["lifetime_premium"], 0) : "&mdash;";
-
-    const products = c.products || c.appliances || [];
-    document.getElementById("productsRows").innerHTML = products.length
-      ? products.map(productRow).join("")
-      : '<tr><td colspan="6" class="muted mini" style="padding:20px">No products on file yet.</td></tr>';
-
-    const interactions = c.interactions || c.recent_interactions || [];
-    document.getElementById("interactionsList").innerHTML = interactions.length
-      ? interactions.map(i => `<div class="interaction-item">${escapeHtml(i.channel || "")} · ${escapeHtml(i.direction || "")} &mdash; ${escapeHtml((i.payload && i.payload.notes) || i.notes || "")}<div class="mini">${i.created_at ? fmtDateTime(i.created_at) : ""}</div></div>`).join("")
-      : '<p class="muted mini">No interactions logged yet.</p>';
-
-    document.getElementById("contactBlock").innerHTML =
-      kv("Phone", escapeHtml(fieldFirst(c, ["phone"], "&mdash;"))) +
-      kv("Email", escapeHtml(fieldFirst(c, ["email"], "&mdash;"))) +
-      kv("Customer since", fmtDate(fieldFirst(c, ["created_at", "customer_since"], null)));
-
-    document.getElementById("custBody").style.display = "block";
-  }
-
-  async function loadCustomer() {
-    if (!customerId) return;
-    hideBanner("custError");
-    try {
-      const data = await authFetch("/v1/console/customers/" + encodeURIComponent(customerId), { method: "GET" });
-      renderCustomer(data);
-    } catch (error) {
-      console.error("Customer load error:", error);
-      showBanner("custError", error.message || "Unable to load this customer.");
-    }
-  }
-
-  async function loadNextBestAction() {
-    if (!customerId) return;
-    try {
-      const data = await authFetch("/v1/console/next-best-action?customer_id=" + encodeURIComponent(customerId), { method: "GET" });
-      const title = fieldFirst(data, ["title", "reason", "type"], "Nothing to offer right now");
-      document.getElementById("nbaTitle").textContent = title;
-      document.getElementById("nbaBody").textContent = fieldFirst(data, ["description", "detail"], "This updates automatically as coverage and case state change.");
-      const productId = fieldFirst(data, ["product_id"], "");
-      const nbaBtn = document.getElementById("nbaAction");
-      if (productId) {
-        nbaBtn.style.display = "inline-flex";
-        nbaBtn.onclick = () => { window.location.href = "sale.html?customer_id=" + encodeURIComponent(customerId) + "&product_id=" + encodeURIComponent(productId); };
-      } else {
-        nbaBtn.style.display = "none";
+    <style>
+      .c360-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 18px;
+        align-items: start;
+        margin-top: 18px;
       }
-    } catch (error) {
-      document.getElementById("nbaTitle").textContent = "No offer available";
-      document.getElementById("nbaBody").textContent = error.message || "The next-best-action engine has nothing to show for this customer right now.";
-      document.getElementById("nbaAction").style.display = "none";
-    }
-  }
 
-  document.getElementById("logInteractionBtn").addEventListener("click", async () => {
-    const channel = document.getElementById("interactionChannel").value;
-    const direction = document.getElementById("interactionDirection").value;
-    const notes = document.getElementById("interactionNotes").value.trim();
+      @media (max-width: 1100px) {
+        .c360-grid {
+          grid-template-columns: 1fr;
+        }
+      }
 
-    try {
-      await authFetch("/v1/console/customers/" + encodeURIComponent(customerId) + "/interactions", {
-        method: "POST",
-        body: { channel, direction, status: "completed", payload: { notes } }
-      });
-      document.getElementById("interactionNotes").value = "";
-      toast("Interaction logged.");
+      .interaction-item {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-soft);
+        font-size: 13px;
+      }
+
+      .interaction-item:last-child {
+        border-bottom: none;
+      }
+
+      .case-item {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .case-item:last-child {
+        border-bottom: none;
+      }
+
+      .case-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .case-id {
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .case-description {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .product-card {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .product-card:last-child {
+        border-bottom: none;
+      }
+
+      .product-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .product-name {
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .product-model {
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      @media (max-width: 800px) {
+        .product-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .product-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .product-field {
+        padding: 9px 10px;
+        background: var(--surface-2);
+        border-radius: 8px;
+      }
+
+      .product-field-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+
+      .product-field-value {
+        margin-top: 3px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .health-score {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+      }
+
+      .coverage-box {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 9px;
+        border: 1px solid var(--border-soft);
+      }
+
+      .coverage-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+
+      .coverage-value {
+        margin-top: 4px;
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .coverage-meta {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .nba-reason {
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.85;
+      }
+
+      .timeline-empty {
+        padding: 18px 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .section-count {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        margin-left: 6px;
+      }
+
+      .loading-state {
+        padding: 30px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .small-link {
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body data-area="console">
+    <div class="app">
+      <aside id="sidebar"></aside>
+
+      <main class="content">
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+          <a href="customers.html" class="btn ghost small">
+            &larr; Back to search
+          </a>
+        </div>
+
+        <!-- ERROR -->
+
+        <div id="custError" class="api-error-banner" role="alert"></div>
+
+        <!-- MAIN -->
+
+        <div id="custBody" style="display: none">
+          <!-- CUSTOMER HEADER -->
+
+          <div class="page-head">
+            <div>
+              <div class="eyebrow">Customer 360</div>
+
+              <h2 id="custName">&mdash;</h2>
+
+              <p class="muted" id="custMeta"></p>
+            </div>
+          </div>
+
+          <!-- STATS -->
+
+          <div class="stats">
+            <div class="stat stat-card">
+              <span class="stat-label">
+                <span class="dot"></span>
+                Products
+              </span>
+
+              <span id="statProducts" class="stat-value"> &mdash; </span>
+            </div>
+
+            <div class="stat stat-card">
+              <span class="stat-label">
+                <span class="dot"></span>
+                Covered
+              </span>
+
+              <span id="statCovered" class="stat-value"> &mdash; </span>
+            </div>
+
+            <div class="stat stat-card alert">
+              <span class="stat-label">
+                <span class="dot"></span>
+                Open cases
+              </span>
+
+              <span id="statOpenCases" class="stat-value"> &mdash; </span>
+            </div>
+
+            <div class="stat stat-card">
+              <span class="stat-label">
+                <span class="dot"></span>
+                Health
+              </span>
+
+              <span id="statHealth" class="stat-value"> &mdash; </span>
+            </div>
+          </div>
+
+          <div class="c360-grid">
+            <!-- ========================================================= -->
+            <!-- LEFT COLUMN -->
+            <!-- ========================================================= -->
+
+            <div style="display: flex; flex-direction: column; gap: 16px">
+              <!-- PRODUCTS -->
+
+              <div class="table-card">
+                <div class="table-toolbar">
+                  <div class="section-title" style="margin: 0">
+                    Products
+
+                    <span id="productsCount" class="section-count"></span>
+                  </div>
+                </div>
+
+                <div id="productsList">
+                  <div class="loading-state">Loading products...</div>
+                </div>
+              </div>
+
+              <!-- SERVICE CASES -->
+
+              <div class="card" style="padding: 20px">
+                <div class="section-title">
+                  Service Cases
+
+                  <span id="casesCount" class="section-count"></span>
+                </div>
+
+                <div id="casesList">
+                  <div class="loading-state">Loading cases...</div>
+                </div>
+              </div>
+
+              <!-- INTERACTIONS -->
+
+              <div class="card" style="padding: 20px">
+                <div class="section-title">
+                  Interactions
+
+                  <span id="interactionsCount" class="section-count"></span>
+                </div>
+
+                <div id="interactionsList">
+                  <div class="loading-state">Loading interactions...</div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-row">
+                  <label>
+                    Channel
+
+                    <select id="interactionChannel">
+                      <option value="phone">Phone call</option>
+
+                      <option value="whatsapp">WhatsApp</option>
+
+                      <option value="sms">SMS</option>
+
+                      <option value="push">Push notification</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Direction
+
+                    <select id="interactionDirection">
+                      <option value="outbound">Outbound</option>
+
+                      <option value="inbound">Inbound</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label>
+                  Notes
+
+                  <textarea
+                    id="interactionNotes"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="Enter details about this interaction..."
+                  ></textarea>
+                </label>
+
+                <button type="button" class="btn ghost" id="logInteractionBtn">
+                  Log interaction
+                </button>
+              </div>
+
+              <!-- OPPORTUNITIES -->
+
+              <div class="card" style="padding: 20px">
+                <div class="section-title">
+                  Opportunities
+
+                  <span id="opportunitiesCount" class="section-count"></span>
+                </div>
+
+                <div id="opportunitiesList"></div>
+              </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- RIGHT COLUMN -->
+            <!-- ========================================================= -->
+
+            <div style="display: flex; flex-direction: column; gap: 16px">
+              <!-- NBA -->
+
+              <div class="hero-card" id="nbaCard">
+                <div class="eyebrow">Next best action</div>
+
+                <h3 id="nbaTitle">Loading...</h3>
+
+                <p id="nbaBody">Calculating the recommended action...</p>
+
+                <div id="nbaReason" class="nba-reason"></div>
+
+                <button
+                  class="btn full"
+                  style="
+                    margin-top: 14px;
+                    background: #fff;
+                    color: var(--indigo-800);
+                  "
+                  id="nbaAction"
+                >
+                  View
+                </button>
+              </div>
+
+              <!-- CONTACT -->
+
+              <div class="card" style="padding: 20px">
+                <div class="section-title">Contact</div>
+
+                <div id="contactBlock"></div>
+              </div>
+
+              <!-- HOUSEHOLDS -->
+
+              <div class="card" style="padding: 20px">
+                <div class="section-title">Household</div>
+
+                <div id="householdBlock"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/api.js"></script>
+
+    <script>
+      renderSidebar("customers");
+
+      const customerId = qs("id");
+
+      /*
+  |--------------------------------------------------------------------------
+  | Helpers
+  |--------------------------------------------------------------------------
+  */
+
+      function fieldFirst(obj, keys, fallback = "") {
+        for (const key of keys) {
+          if (
+            obj &&
+            obj[key] !== undefined &&
+            obj[key] !== null &&
+            obj[key] !== ""
+          ) {
+            return obj[key];
+          }
+        }
+
+        return fallback;
+      }
+
+      function safeArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function money(agorot) {
+        if (agorot === null || agorot === undefined || agorot === "") {
+          return "—";
+        }
+
+        const value = Number(agorot);
+
+        if (!Number.isFinite(value)) {
+          return "—";
+        }
+
+        return "₪" + (value / 100).toFixed(2);
+      }
+
+      function formatStatus(status) {
+        if (!status) {
+          return "—";
+        }
+
+        return String(status)
+          .replaceAll("_", " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+
+      function statusClass(status) {
+        const value = String(status || "").toLowerCase();
+
+        if (["closed", "active", "completed", "won"].includes(value)) {
+          return "b-success";
+        }
+
+        if (["cancelled", "failed", "lost"].includes(value)) {
+          return "b-danger";
+        }
+
+        if (
+          [
+            "pending_parts",
+            "pending_payment",
+            "pending_activation",
+            "suppressed",
+          ].includes(value)
+        ) {
+          return "b-warning";
+        }
+
+        return "b-neutral";
+      }
+
+      function healthLabel(state) {
+        if (!state) {
+          return "—";
+        }
+
+        return formatStatus(state);
+      }
+
+      function coverageLabel(coverage) {
+        if (!coverage) {
+          return "No coverage";
+        }
+
+        if (coverage.source === "manufacturer") {
+          return "Manufacturer warranty";
+        }
+
+        if (coverage.source === "extended") {
+          return "Extended warranty";
+        }
+
+        if (coverage.reason) {
+          return formatStatus(coverage.reason);
+        }
+
+        return "No coverage";
+      }
+
+      function escapeText(value) {
+        return escapeHtml(
+          value === null || value === undefined ? "" : String(value),
+        );
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Customer
+  |--------------------------------------------------------------------------
+  */
+
+      function renderCustomer(customer) {
+        const name = fieldFirst(customer, ["full_name", "name"], "Customer");
+
+        const phone = fieldFirst(customer, ["phone"], "");
+
+        const email = fieldFirst(customer, ["email"], "");
+
+        const status = fieldFirst(customer, ["status"], "");
+
+        document.getElementById("custName").textContent = name;
+
+        document.getElementById("custMeta").textContent = [
+          phone,
+          email,
+          status ? formatStatus(status) : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        document.getElementById("contactBlock").innerHTML =
+          kv("Phone", escapeText(phone || "—")) +
+          kv("Email", escapeText(email || "—")) +
+          kv("Status", escapeText(formatStatus(status))) +
+          kv(
+            "Customer since",
+            customer.created_at ? fmtDate(customer.created_at) : "—",
+          );
+
+        document.getElementById("custBody").style.display = "block";
+      }
+
+      function kv(label, value) {
+        return `
+      <div
+        class="kv-row"
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          padding:8px 0;
+          border-bottom:1px solid var(--border-soft);
+          font-size:13.5px;
+        "
+      >
+
+        <span class="muted">
+          ${escapeText(label)}
+        </span>
+
+        <span
+          style="
+            font-weight:600;
+            text-align:right;
+          "
+        >
+          ${value}
+        </span>
+
+      </div>
+    `;
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Products
+  |--------------------------------------------------------------------------
+  */
+
+      function renderProducts(products) {
+        products = safeArray(products);
+
+        document.getElementById("productsCount").textContent =
+          `(${products.length})`;
+
+        document.getElementById("statProducts").textContent = products.length;
+
+        if (!products.length) {
+          document.getElementById("productsList").innerHTML = `
+        <div class="loading-state">
+          No products on file yet.
+        </div>
+      `;
+
+          document.getElementById("statCovered").textContent = "0";
+
+          document.getElementById("statHealth").textContent = "—";
+
+          return;
+        }
+
+        let coveredCount = 0;
+
+        let healthTotal = 0;
+
+        let healthCount = 0;
+
+        const html = products
+          .map((product) => {
+            const coverage = product.coverage || null;
+
+            const covered =
+              coverage &&
+              (coverage.source === "manufacturer" ||
+                coverage.source === "extended");
+
+            if (covered) {
+              coveredCount++;
+            }
+
+            const health = product.health_score;
+
+            if (
+              health !== null &&
+              health !== undefined &&
+              Number.isFinite(Number(health))
+            ) {
+              healthTotal += Number(health);
+
+              healthCount++;
+            }
+
+            const name = fieldFirst(
+              product,
+              ["name", "product_name"],
+              "Product",
+            );
+
+            const model = fieldFirst(product, ["model"], "—");
+
+            const serial = fieldFirst(
+              product,
+              ["serial_number", "serial"],
+              "—",
+            );
+
+            const status = fieldFirst(product, ["status"], "");
+
+            const healthState = fieldFirst(product, ["health_state"], "");
+
+            const productId = fieldFirst(
+              product,
+              ["_id", "id", "product_id"],
+              "",
+            );
+
+            const coverageProvider =
+              coverage && coverage.provider ? coverage.provider.name : null;
+
+            const coverageEnd =
+              coverage && coverage.end_date ? fmtDate(coverage.end_date) : null;
+
+            const manufacturerWarranty = product.manufacturer_warranty;
+
+            const extendedWarranty = product.extended_warranty;
+
+            let warrantyText = coverageLabel(coverage);
+
+            if (coverageProvider) {
+              warrantyText += " · " + coverageProvider;
+            }
+
+            return `
+
+              <div class="product-card">
+
+                <div class="product-header">
+
+                  <div>
+
+                    <div class="product-name">
+
+                      ${escapeText(name)}
+
+                    </div>
+
+                    <div class="product-model">
+
+                      Model:
+                      ${escapeText(model)}
+
+                    </div>
+
+                  </div>
+
+                  <span
+                    class="badge ${statusClass(status)}"
+                  >
+                    ${escapeText(formatStatus(status))}
+                  </span>
+
+                </div>
+
+
+                <div class="product-grid">
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Serial
+                    </div>
+
+                    <div class="product-field-value">
+                      ${escapeText(serial)}
+                    </div>
+
+                  </div>
+
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Health Score
+                    </div>
+
+                    <div class="product-field-value health-score">
+
+                      ${
+                        health !== null && health !== undefined
+                          ? escapeText(String(health)) + "/100"
+                          : "—"
+                      }
+
+                      ${
+                        healthState
+                          ? `
+                            <span class="mini">
+                              ${escapeText(healthLabel(healthState))}
+                            </span>
+                          `
+                          : ""
+                      }
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Purchase Price
+                    </div>
+
+                    <div class="product-field-value">
+                      ${money(product.purchase_price)}
+                    </div>
+
+                  </div>
+
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Purchase Date
+                    </div>
+
+                    <div class="product-field-value">
+                      ${
+                        product.purchase_date
+                          ? fmtDate(product.purchase_date)
+                          : "—"
+                      }
+                    </div>
+
+                  </div>
+
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Manufacturer Warranty
+                    </div>
+
+                    <div class="product-field-value">
+
+                      ${
+                        manufacturerWarranty
+                          ? `
+                            ${fmtDate(manufacturerWarranty.start_date)}
+                            →
+                            ${fmtDate(manufacturerWarranty.end_date)}
+                          `
+                          : "None"
+                      }
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="product-field">
+
+                    <div class="product-field-label">
+                      Extended Warranty
+                    </div>
+
+                    <div class="product-field-value">
+
+                      ${
+                        extendedWarranty
+                          ? escapeText(formatStatus(extendedWarranty.status))
+                          : "None"
+                      }
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                <div class="coverage-box">
+
+                  <div class="coverage-title">
+                    Current Coverage
+                  </div>
+
+                  <div class="coverage-value">
+
+                    ${escapeText(warrantyText)}
+
+                  </div>
+
+                  <div class="coverage-meta">
+
+                    ${
+                      coverageEnd
+                        ? "Coverage ends " + escapeText(coverageEnd)
+                        : ""
+                    }
+
+                    ${
+                      coverage && coverage.customer_pays !== undefined
+                        ? (coverageEnd ? " · " : "") +
+                          "Customer pays " +
+                          money(coverage.customer_pays)
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <div style="margin-top:12px">
+
+                  <a
+                    class="btn small soft"
+                    href="sale.html?customer_id=${encodeURIComponent(customerId)}&product_id=${encodeURIComponent(productId)}"
+                  >
+                    Sell warranty
+                  </a>
+
+                </div>
+
+              </div>
+
+            `;
+          })
+          .join("");
+
+        document.getElementById("productsList").innerHTML = html;
+
+        document.getElementById("statCovered").textContent = coveredCount;
+
+        document.getElementById("statHealth").textContent = healthCount
+          ? Math.round(healthTotal / healthCount)
+          : "—";
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Service Cases
+  |--------------------------------------------------------------------------
+  */
+
+      function renderCases(cases) {
+        cases = safeArray(cases);
+
+        document.getElementById("casesCount").textContent = `(${cases.length})`;
+
+        const openCases = cases.filter(
+          (item) =>
+            !["closed", "cancelled"].includes(
+              String(item.status || "").toLowerCase(),
+            ),
+        );
+
+        document.getElementById("statOpenCases").textContent = openCases.length;
+
+        if (!cases.length) {
+          document.getElementById("casesList").innerHTML = `
+        <div class="timeline-empty">
+          No service cases found.
+        </div>
+      `;
+
+          return;
+        }
+
+        document.getElementById("casesList").innerHTML = cases
+          .map((serviceCase) => {
+            const caseId = fieldFirst(
+              serviceCase,
+              ["_id", "id", "case_id"],
+              "—",
+            );
+
+            const status = fieldFirst(serviceCase, ["status"], "");
+
+            const fault = fieldFirst(serviceCase, ["fault_type"], "");
+
+            const description = fieldFirst(serviceCase, ["description"], "");
+
+            const created = serviceCase.created_at
+              ? fmtDateTime(serviceCase.created_at)
+              : "";
+
+            return `
+
+              <div class="case-item">
+
+                <div class="case-top">
+
+                  <div class="case-id">
+
+                    Case
+                    ${escapeText(caseId)}
+
+                  </div>
+
+                  <span
+                    class="badge ${statusClass(status)}"
+                  >
+                    ${escapeText(formatStatus(status))}
+                  </span>
+
+                </div>
+
+
+                ${
+                  fault
+                    ? `
+                      <div
+                        class="mini"
+                        style="margin-top:5px"
+                      >
+                        ${escapeText(formatStatus(fault))}
+                      </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  description
+                    ? `
+                      <div class="case-description">
+                        ${escapeText(description)}
+                      </div>
+                    `
+                    : ""
+                }
+
+
+                <div
+                  class="mini"
+                  style="margin-top:8px"
+                >
+                  ${escapeText(created)}
+                </div>
+
+
+                <div
+                  style="margin-top:10px"
+                >
+
+                  <a
+                    class="btn small soft"
+                    href="case-detail.html?id=${encodeURIComponent(caseId)}"
+                  >
+                    Open case
+                  </a>
+
+                </div>
+
+              </div>
+
+            `;
+          })
+          .join("");
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Interactions
+  |--------------------------------------------------------------------------
+  */
+
+      function renderInteractions(interactions) {
+        interactions = safeArray(interactions);
+
+        document.getElementById("interactionsCount").textContent =
+          `(${interactions.length})`;
+
+        const container = document.getElementById("interactionsList");
+
+        if (!interactions.length) {
+          container.innerHTML = `
+      <div class="timeline-empty">
+        No interactions logged yet.
+      </div>
+    `;
+
+          return;
+        }
+
+        container.innerHTML = interactions
+          .map((interaction) => {
+            const channel = fieldFirst(interaction, ["channel"], "");
+
+            const direction = fieldFirst(interaction, ["direction"], "");
+
+            const status = fieldFirst(interaction, ["status"], "");
+
+            const payload = interaction.payload || {};
+
+            const notes = fieldFirst(
+              payload,
+              ["notes", "note", "message", "body"],
+              "",
+            );
+
+            const createdAt = interaction.created_at
+              ? fmtDateTime(interaction.created_at)
+              : "";
+
+            return `
+
+            <div class="interaction-item">
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:flex-start;
+                  gap:12px;
+                "
+              >
+
+                <div>
+
+                  <strong>
+                    ${escapeText(formatStatus(channel))}
+                  </strong>
+
+                  <div
+                    class="mini"
+                    style="margin-top:4px"
+                  >
+
+                    ${escapeText(formatStatus(direction))}
+
+                    ${
+                      status
+                        ? `
+                          ·
+                          ${escapeText(formatStatus(status))}
+                        `
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <span class="mini">
+                  ${escapeText(createdAt)}
+                </span>
+
+              </div>
+
+
+              ${
+                notes
+                  ? `
+                    <div
+                      style="
+                        margin-top:8px;
+                        line-height:1.5;
+                      "
+                    >
+                      ${escapeText(notes)}
+                    </div>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `;
+          })
+          .join("");
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Opportunities
+  |--------------------------------------------------------------------------
+  */
+
+      function renderOpportunities(opportunities) {
+        opportunities = safeArray(opportunities);
+
+        document.getElementById("opportunitiesCount").textContent =
+          `(${opportunities.length})`;
+
+        if (!opportunities.length) {
+          document.getElementById("opportunitiesList").innerHTML = `
+        <div class="timeline-empty">
+          No opportunities found.
+        </div>
+      `;
+
+          return;
+        }
+
+        document.getElementById("opportunitiesList").innerHTML = opportunities
+          .map((opportunity) => {
+            const type = fieldFirst(opportunity, ["type"], "Opportunity");
+
+            const stage = fieldFirst(opportunity, ["stage"], "");
+
+            const score = fieldFirst(opportunity, ["score"], null);
+
+            const reason = fieldFirst(opportunity, ["reason"], "");
+
+            return `
+
+              <div
+                class="interaction-item"
+              >
+
+                <div
+                  style="
+                    display:flex;
+                    justify-content:space-between;
+                    gap:10px;
+                  "
+                >
+
+                  <strong>
+                    ${escapeText(formatStatus(type))}
+                  </strong>
+
+                  <span
+                    class="badge ${statusClass(stage)}"
+                  >
+                    ${escapeText(formatStatus(stage))}
+                  </span>
+
+                </div>
+
+
+                ${
+                  score !== null
+                    ? `
+                      <div class="mini">
+                        Score:
+                        ${escapeText(score)}
+                      </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  reason
+                    ? `
+                      <div
+                        class="mini"
+                        style="margin-top:4px"
+                      >
+                        ${escapeText(reason)}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            `;
+          })
+          .join("");
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Household
+  |--------------------------------------------------------------------------
+  */
+
+      function renderHouseholds(households) {
+        households = safeArray(households);
+
+        if (!households.length) {
+          document.getElementById("householdBlock").innerHTML = `
+      <div class="muted mini">
+        No household information found.
+      </div>
+    `;
+
+          return;
+        }
+
+        document.getElementById("householdBlock").innerHTML = households
+          .map((householdId) =>
+            kv(
+              "Household ID",
+              `
+          <span
+            style="
+              font-size:11px;
+              word-break:break-all;
+            "
+          >
+            ${escapeText(householdId)}
+          </span>
+        `,
+            ),
+          )
+          .join("");
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | NBA
+  |--------------------------------------------------------------------------
+  */
+
+      function renderNBA(nba) {
+        nba = nba || {};
+
+        const action = fieldFirst(nba, ["action", "type"], "NO_ACTION");
+
+        const reason = fieldFirst(nba, ["reason"], "");
+
+        const productId = fieldFirst(nba, ["product_id"], "");
+
+        const caseId = fieldFirst(nba, ["case_id"], "");
+
+        const suppressedBy = fieldFirst(nba, ["suppressed_by"], null);
+
+        const actionTitle = formatStatus(action);
+
+        document.getElementById("nbaTitle").textContent = actionTitle;
+
+        let body = "No commercial action is currently recommended.";
+
+        if (action === "SHOW_CASE_STATUS") {
+          body = caseId
+            ? "Customer has an unresolved service case. Service takes priority."
+            : "Customer has an unresolved service case.";
+        }
+
+        if (action === "REQUEST_DOCUMENTATION") {
+          body =
+            "Product documentation is incomplete. Request the missing proof before commercial action.";
+        }
+
+        if (action === "CONFIRM_OWNERSHIP") {
+          body = "A product is waiting for ownership confirmation.";
+        }
+
+        if (action === "ADD_PRODUCT") {
+          body = "The household has fewer than three products.";
+        }
+
+        if (action === "EXTENDED_WARRANTY") {
+          body = "An eligible product may need an extended warranty.";
+        }
+
+        if (action === "REPLACEMENT_COMPARISON") {
+          body = "A product qualifies for replacement comparison.";
+        }
+
+        if (suppressedBy) {
+          body = "Commercial action is currently suppressed.";
+        }
+
+        document.getElementById("nbaBody").textContent = body;
+
+        document.getElementById("nbaReason").textContent = reason
+          ? "Reason: " + formatStatus(reason)
+          : "";
+
+        const button = document.getElementById("nbaAction");
+
+        button.style.display = "none";
+
+        /*
+         * Open service case.
+         */
+
+        if (action === "SHOW_CASE_STATUS" && caseId) {
+          button.style.display = "inline-flex";
+
+          button.textContent = "View case";
+
+          button.onclick = () => {
+            window.location.href =
+              "case-detail.html?id=" + encodeURIComponent(caseId);
+          };
+
+          return;
+        }
+
+        /*
+         * Warranty sale.
+         */
+
+        if (action === "EXTENDED_WARRANTY" && productId) {
+          button.style.display = "inline-flex";
+
+          button.textContent = "View warranty";
+
+          button.onclick = () => {
+            window.location.href =
+              "sale.html?customer_id=" +
+              encodeURIComponent(customerId) +
+              "&product_id=" +
+              encodeURIComponent(productId);
+          };
+
+          return;
+        }
+
+        /*
+         * Documentation / ownership.
+         *
+         * These are not yet implemented as
+         * Console action pages, therefore don't
+         * create a fake navigation.
+         */
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Load Customer 360
+  |--------------------------------------------------------------------------
+  */
+
+      async function loadCustomer() {
+        if (!customerId) {
+          showBanner(
+            "custError",
+            "No customer id was given. Go back and open a customer from search.",
+          );
+
+          return;
+        }
+
+        hideBanner("custError");
+
+        try {
+          const response = await authFetch(
+            "/v1/console/customers/" + encodeURIComponent(customerId),
+            {
+              method: "GET",
+            },
+          );
+
+          /*
+           * authFetch normally returns
+           * the response data directly.
+           */
+
+          const data =
+            response && response.data && !response.customer
+              ? response.data
+              : response;
+
+          const customer = data.customer || {};
+
+          const products = data.products || [];
+
+          const cases = data.cases || [];
+
+          const interactions = data.interactions || [];
+
+          const opportunities = data.opportunities || [];
+
+          const households = data.households || {};
+
+          const nba = data.nba || null;
+
+          renderCustomer(customer);
+
+          renderProducts(products);
+
+          renderCases(cases);
+
+          renderInteractions(interactions);
+
+          renderOpportunities(opportunities);
+
+          renderHouseholds(households);
+
+          renderNBA(nba);
+        } catch (error) {
+          console.error("Customer 360 load error:", error);
+
+          showBanner(
+            "custError",
+            error.message || "Unable to load this customer.",
+          );
+        }
+      }
+
+      /*
+  |--------------------------------------------------------------------------
+  | Log Interaction
+  |--------------------------------------------------------------------------
+  */
+
+      document
+        .getElementById("logInteractionBtn")
+        .addEventListener("click", async () => {
+          const channel = document.getElementById("interactionChannel").value;
+
+          const direction = document.getElementById(
+            "interactionDirection",
+          ).value;
+
+          const notes = document
+            .getElementById("interactionNotes")
+            .value.trim();
+
+          const button = document.getElementById("logInteractionBtn");
+
+          /*
+           * Validate customer ID.
+           */
+
+          if (!customerId) {
+            toast("Customer ID is missing.", "err");
+
+            return;
+          }
+
+          /*
+           * Notes are required for a manually
+           * logged Console interaction.
+           */
+
+          if (!notes) {
+            toast("Please enter interaction notes.", "err");
+
+            document.getElementById("interactionNotes").focus();
+
+            return;
+          }
+
+          /*
+           * Prevent duplicate submissions.
+           */
+
+          button.disabled = true;
+
+          button.textContent = "Saving...";
+
+          try {
+            /*
+             * The backend Interaction model accepts:
+             *
+             * channel:
+             * phone | whatsapp | sms | push
+             *
+             * direction:
+             * inbound | outbound
+             *
+             * status:
+             * queued | sent | delivered | read | failed | completed
+             *
+             * We use "delivered" because this is a
+             * manually recorded completed interaction.
+             */
+
+            await authFetch(
+              "/v1/console/customers/" +
+                encodeURIComponent(customerId) +
+                "/interactions",
+
+              {
+                method: "POST",
+
+                body: {
+                  channel,
+
+                  direction,
+
+                  status: channel === "phone" ? "completed" : "delivered",
+
+                  payload: {
+                    notes,
+                  },
+                },
+              },
+            );
+
+            /*
+             * Clear form after successful creation.
+             */
+
+            document.getElementById("interactionNotes").value = "";
+
+            /*
+             * Restore defaults.
+             */
+
+            document.getElementById("interactionChannel").value = "phone";
+
+            document.getElementById("interactionDirection").value = "outbound";
+
+            toast("Interaction logged successfully.");
+
+            /*
+             * Reload Customer 360 so the newly
+             * created interaction appears immediately.
+             */
+
+            await loadCustomer();
+          } catch (error) {
+            console.error("Interaction logging error:", error);
+
+            toast(error.message || "Could not log the interaction.", "err");
+          } finally {
+            button.disabled = false;
+
+            button.textContent = "Log interaction";
+          }
+        });
+
+      /*
+  |--------------------------------------------------------------------------
+  | Initial load
+  |--------------------------------------------------------------------------
+  */
+
       loadCustomer();
-    } catch (error) {
-      toast(error.message || "Could not log the interaction.", "err");
-    }
-  });
-
-  loadCustomer();
-  loadNextBestAction();
-
-</script>
-
-</body>
+    </script>
+  </body>
 </html>

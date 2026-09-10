@@ -15,7 +15,7 @@ function fieldFirst(obj, keys, fallback) {
 }
 
 function getItemId(item, idField) {
-  return fieldFirst(item, [idField || "id", "id"], "");
+  return fieldFirst(item, [idField || "id", "id", "_id"], "");
 }
 
 function formFieldHtml(field, value) {

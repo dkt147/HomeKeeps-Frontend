@@ -53,7 +53,6 @@ renderCrudPage({
   subtitle: "What we owe each supplier, and when a lead counts as billable.",
   listPath: "/v1/admin/lead-sources",
   createLabel: "+ New source",
-  toggleField: "active",
   columns: [
     { label: "Name", render: s => `<span class="cell-primary">${escapeHtml(fieldFirst(s,["name"],"\u2014"))}</span>` },
     { label: "Integration", render: s => escapeHtml(fieldFirst(s,["integration_type"],"\u2014")) },
@@ -65,15 +64,21 @@ renderCrudPage({
   ],
   fields: [
     { key: "name", label: "Name", type: "text", placeholder: "Electra Home" },
-    { key: "integration_type", label: "Integration type", type: "text", placeholder: "webhook" },
+    { key: "code", label: "Code", type: "text", placeholder: "electra_home" },
+    { key: "default_message_template", label: "Default WhatsApp template", type: "text", placeholder: "ownership_confirm" },
     { key: "pricing_model", label: "Pricing model", type: "select", options: [
         {value:"per_lead",label:"per_lead"},{value:"per_closed_lead",label:"per_closed_lead"},{value:"hybrid",label:"hybrid"}] },
     { key: "price_per_lead", label: "Price per lead (agorot)", type: "number" },
     { key: "price_per_activation", label: "Price per activation (agorot)", type: "number" },
     { key: "price_per_warranty", label: "Price per warranty sold (agorot)", type: "number" },
-    { key: "closed_definition", label: "Closed lead definition", type: "text", placeholder: "extended warranty sold" },
+    { key: "closed_definition", label: "Closed lead definition", type: "select", options: [
+        {value:"extended_warranty_sold",label:"extended_warranty_sold"},
+        {value:"product_activated",label:"product_activated"},
+        {value:"app_installed",label:"app_installed"}] },
     { key: "attribution_window_days", label: "Attribution window (days)", type: "number", placeholder: "540" },
-    { key: "active", label: "Active", type: "checkbox", default: true }
+    { key: "webhook_secret", label: "Webhook secret (32+ chars)", type: "password" },
+    { key: "status", label: "Status", type: "select", options: [
+        {value:"active",label:"active"},{value:"inactive",label:"inactive"}] }
   ]
 });
 

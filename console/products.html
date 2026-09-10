@@ -1,37 +1,12 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Products - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
-</head>
-<body data-area="console">
-<div class="app">
-  <aside id="sidebar"></aside>
-  <main class="content">
-    <div class="topbar"><span>HomeKeep Admin</span></div>
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Catalog</div>
-        <h2>Products</h2>
-        <p class="muted">The product catalog behind categories &mdash; brand, model, base specs.</p>
-      </div>
-    </div>
-    <div class="card" style="padding:22px;border-left:3px solid var(--accent)">
-      <div class="section-title">Needs an API</div>
-      <p style="font-size:13.5px;line-height:1.6;color:var(--text-2)">
-        No product-catalog endpoint was in the list you gave me (only
-        <code>product-categories</code>, which has its own page). Once you have something like
-        <code>GET /v1/admin/products</code> (and create/update), this page is ready to be wired the
-        same way <a href="../admin/product-categories.html" class="btn link">Categories</a> is &mdash; same
-        table, form and toast pattern.
-      </p>
-    </div>
-  </main>
-</div>
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
-<script>renderSidebar("products");</script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Products - HomeKeep</title><link rel="stylesheet" href="../shared/css/admin.css"></head>
+<body data-area="console"><div class="app"><aside id="sidebar"></aside><main class="content">
+<div id="pageError" class="api-error-banner" role="alert"></div>
+<div class="page-head"><div><div class="eyebrow">Operations · products</div><h2>Products</h2><p class="muted">Search the appliance records available to the Console.</p></div></div>
+<div class="card" style="padding:16px;margin-bottom:18px"><div class="form-row"><label>Search<input id="q" placeholder="Serial, model or product ID"></label><label>Status<select id="status"><option value="">All</option><option>pending_activation</option><option>active</option><option>rejected</option><option>archived</option></select></label><label style="align-self:end"><button class="btn primary" id="searchBtn">Search</button></label></div></div>
+<div class="table-card"><div class="table-toolbar"><div class="muted mini" id="count"></div></div><table class="data-table"><thead><tr><th>Product</th><th>Model</th><th>Serial</th><th>Status</th><th>Customer</th><th>Health</th></tr></thead><tbody id="rows"></tbody></table></div>
+</main></div>
+<script src="../shared/js/config.js"></script><script src="../shared/js/api.js"></script><script>
+renderSidebar("products");const $=id=>document.getElementById(id);
+async function load(){hideBanner("pageError");const p=new URLSearchParams({page:"1",per_page:"100"});if($("q").value.trim())p.set("q",$("q").value.trim());if($("status").value)p.set("status",$("status").value);try{const d=await authFetch("/v1/console/products?"+p,{method:"GET"});const items=Array.isArray(d)?d:(d.items||d.data||[]);$("count").textContent=items.length+" products";$("rows").innerHTML=items.map(x=>`<tr><td><div class="cell-primary">${escapeHtml(x.name||x.product_name||"Product")}</div><div class="cell-sub">${escapeHtml(x._id||x.id||"")}</div></td><td>${escapeHtml(x.model||"—")}</td><td class="cell-sub">${escapeHtml(x.serial_number||"—")}</td><td><span class="badge ${statusBadgeClass(x.status)}">${escapeHtml(x.status||"—")}</span></td><td><div>${escapeHtml(x.customer?.full_name||"—")}</div><div class="cell-sub">${escapeHtml(x.customer?.phone||"")}</div></td><td>${x.health_score==null?"—":escapeHtml(x.health_score+"/100")}</td></tr>`).join("")||'<tr><td colspan="6"><div class="empty-state"><h3>No products found</h3></div></td></tr>'}catch(e){showBanner("pageError",e.message||"Unable to load products.")}}$("searchBtn").onclick=load;load();
+</script></body></html>

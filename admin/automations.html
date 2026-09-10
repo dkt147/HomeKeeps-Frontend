@@ -64,7 +64,7 @@ renderCrudPage({
     { key: "name", label: "Name", type: "text", placeholder: "mw.ends_in_90d" },
     { key: "trigger_type", label: "Trigger", type: "text", placeholder: "mw.ends_in_90d" },
     { key: "conditions", label: "Conditions (JSON)", type: "textarea", json: true, placeholder: '{ "eligible": true, "consent_marketing": true }' },
-    { key: "action", label: "Action", type: "text", placeholder: "send ew_offer_90d (marketing)" },
+    { key: "action", label: "Action (JSON)", type: "textarea", json: true, rows: 4, placeholder: '{ "type": "send_whatsapp", "template_id": "..." }' },
     { key: "throttle_key", label: "Throttle", type: "text", placeholder: "1 per product" },
     { key: "is_active", label: "Active", type: "checkbox", default: true }
   ]

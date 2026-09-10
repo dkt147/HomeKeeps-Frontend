@@ -1,149 +1,243 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Case queue - HomeKeep</title>
+    <link rel="stylesheet" href="../shared/css/admin.css" />
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Case queue - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
-</head>
+  <body data-area="console">
+    <div class="app">
+      <aside id="sidebar"></aside>
 
-<body data-area="console">
-
-<div class="app">
-
-  <aside id="sidebar"></aside>
-
-  <main class="content">
-
-    <div class="topbar">
-      <span>HomeKeep Console</span>
-      <span class="topbar-right muted" id="refreshedAt"></span>
-    </div>
-
-    <div id="queueError" class="api-error-banner" role="alert"></div>
-
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">Advisor</div>
-        <h2>Case queue</h2>
-        <p class="muted">Open service cases, ordered by how long they've been waiting.</p>
-      </div>
-      <button class="btn ghost" id="refreshBtn">&#8635; Refresh</button>
-    </div>
-
-    <div class="stats">
-      <div class="stat stat-card accent-fill">
-        <span class="stat-label"><span class="dot"></span>Open cases</span>
-        <span id="sumOpen" class="stat-value api-loading">&mdash;</span>
-      </div>
-      <div class="stat stat-card alert">
-        <span class="stat-label"><span class="dot"></span>SLA breached</span>
-        <span id="sumBreached" class="stat-value api-loading">&mdash;</span>
-      </div>
-      <div class="stat stat-card">
-        <span class="stat-label"><span class="dot"></span>Due within 4h</span>
-        <span id="sumDueSoon" class="stat-value api-loading">&mdash;</span>
-      </div>
-      <div class="stat stat-card">
-        <span class="stat-label"><span class="dot"></span>Unassigned</span>
-        <span id="sumUnassigned" class="stat-value api-loading">&mdash;</span>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-toolbar">
-        <div class="pill-tabs" id="statusTabs">
-          <button class="active" data-status="">All open</button>
-          <button data-status="new">New</button>
-          <button data-status="routed">Routed</button>
-          <button data-status="scheduled">Scheduled</button>
-          <button data-status="in_progress">In progress</button>
-          <button data-status="pending_parts">Pending parts</button>
+      <main class="content">
+        <div class="topbar">
+          <span>HomeKeep Console</span>
+          <span class="topbar-right muted" id="refreshedAt"></span>
         </div>
-        <div class="muted mini" id="rowCount"></div>
-      </div>
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Case</th>
-            <th>Customer</th>
-            <th>Product &amp; fault</th>
-            <th>Status</th>
-            <th>Provider</th>
-            <th>SLA</th>
-            <th>Assigned</th>
-          </tr>
-        </thead>
-        <tbody id="queueRows">
-          <tr><td colspan="7"><div class="skeleton-line" style="width:100%"></div></td></tr>
-        </tbody>
-      </table>
+        <div id="queueError" class="api-error-banner" role="alert"></div>
 
-      <div id="queueEmpty" class="empty-state" style="display:none">
-        <h3>Nothing here</h3>
-        <p>No service cases match this filter right now.</p>
-      </div>
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Advisor</div>
+            <h2>Case queue</h2>
+            <p class="muted">
+              Open service cases, ordered by how long they've been waiting.
+            </p>
+          </div>
+          <button class="btn ghost" id="refreshBtn">&#8635; Refresh</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat stat-card accent-fill">
+            <span class="stat-label">
+              <span class="dot"></span>
+              Open cases
+            </span>
+
+            <span id="sumOpen" class="stat-value api-loading"> &mdash; </span>
+          </div>
+
+          <div class="stat stat-card alert">
+            <span class="stat-label">
+              <span class="dot"></span>
+              SLA breached
+            </span>
+
+            <span id="sumBreached" class="stat-value api-loading">
+              &mdash;
+            </span>
+          </div>
+
+          <div class="stat stat-card">
+            <span class="stat-label">
+              <span class="dot"></span>
+              Awaiting parts
+            </span>
+
+            <span id="sumAwaitingParts" class="stat-value api-loading">
+              &mdash;
+            </span>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="pill-tabs" id="statusTabs">
+              <button class="active" data-status="">All open</button>
+              <button data-status="new">New</button>
+              <button data-status="routed">Routed</button>
+              <button data-status="scheduled">Scheduled</button>
+              <button data-status="in_progress">In progress</button>
+              <button data-status="pending_parts">Pending parts</button>
+            </div>
+            <div class="queue-filters">
+              <label class="mini muted" for="assignmentFilter">
+                Assignment
+              </label>
+
+              <select id="assignmentFilter" class="input input-sm">
+                <option value="">All</option>
+                <option value="assigned">Assigned</option>
+                <option value="unassigned">Unassigned</option>
+              </select>
+
+              <label class="mini muted" for="slaFilter"> SLA </label>
+
+              <select id="slaFilter" class="input input-sm">
+                <option value="">All</option>
+                <option value="breached">Breached</option>
+              </select>
+
+              <span class="muted mini" id="rowCount"></span>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Customer</th>
+                <th>Product &amp; fault</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>SLA</th>
+                <th>Assigned</th>
+              </tr>
+            </thead>
+            <tbody id="queueRows">
+              <tr>
+                <td colspan="7">
+                  <div class="skeleton-line" style="width: 100%"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="queueEmpty" class="empty-state" style="display: none">
+            <h3>Nothing here</h3>
+            <p>No service cases match this filter right now.</p>
+          </div>
+        </div>
+      </main>
     </div>
 
-  </main>
-</div>
+    <script src="../shared/js/config.js"></script>
+    <script src="../shared/js/api.js"></script>
+    <script>
+      renderSidebar("service-cases");
 
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
-<script>
+      let currentStatus = "";
+      let currentAssignment = "";
+      let currentSla = "";
+      let refreshTimer = null;
 
-  renderSidebar("service-cases");
+      function fieldFirst(obj, keys, fallback) {
+        for (const k of keys) {
+          if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "")
+            return obj[k];
+        }
+        return fallback;
+      }
 
-  let currentStatus = "";
-  let refreshTimer = null;
+      function renderRefreshedAt() {
+        document.getElementById("refreshedAt").textContent =
+          "Refreshed " +
+          new Date().toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+      }
 
-  function fieldFirst(obj, keys, fallback) {
-    for (const k of keys) {
-      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
-    }
-    return fallback;
-  }
+      async function loadSummary() {
+        try {
+          const s = await authFetch("/v1/console/queue/summary", {
+            method: "GET",
+          });
 
-  function renderRefreshedAt() {
-    document.getElementById("refreshedAt").textContent =
-      "Refreshed " + new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  }
+          document.getElementById("sumOpen").textContent = fieldFirst(
+            s,
+            ["open"],
+            0,
+          );
 
-  async function loadSummary() {
-    try {
-      const s = await authFetch("/v1/console/queue/summary", { method: "GET" });
-      document.getElementById("sumOpen").textContent = fieldFirst(s, ["open", "open_cases", "total_open"], 0);
-      document.getElementById("sumOpen").classList.remove("api-loading");
-      document.getElementById("sumBreached").textContent = fieldFirst(s, ["sla_breached", "breached"], 0);
-      document.getElementById("sumBreached").classList.remove("api-loading");
-      document.getElementById("sumDueSoon").textContent = fieldFirst(s, ["due_soon", "due_within_4h"], 0);
-      document.getElementById("sumDueSoon").classList.remove("api-loading");
-      document.getElementById("sumUnassigned").textContent = fieldFirst(s, ["unassigned"], 0);
-      document.getElementById("sumUnassigned").classList.remove("api-loading");
-    } catch (error) {
-      console.error("Queue summary error:", error);
-      // Non-fatal — the table below is the primary content.
-    }
-  }
+          document.getElementById("sumOpen").classList.remove("api-loading");
 
-  function rowHtml(item) {
-    const id = fieldFirst(item, ["id", "case_id", "case_number"], "");
-    const caseNo = fieldFirst(item, ["case_number", "reference", "id"], id);
-    const custName = fieldFirst(item, ["customer_name"], (item.customer && (item.customer.name)) || "&mdash;");
-    const custPhone = fieldFirst(item, ["customer_phone"], (item.customer && item.customer.phone) || "");
-    const product = fieldFirst(item, ["product_name"], (item.product && item.product.name) || "&mdash;");
-    const fault = fieldFirst(item, ["fault_type", "fault"], item.fault_description || "");
-    const status = fieldFirst(item, ["status"], "&mdash;");
-    const provider = fieldFirst(item, ["provider_name"], (item.provider && item.provider.name) || "not routed");
-    const slaBreached = item.sla_breached === true || status === "breached";
-    const slaText = slaBreached
-      ? "breached"
-      : (item.sla_due_at ? "due " + fmtDateTime(item.sla_due_at) : "&mdash;");
-    const assigned = fieldFirst(item, ["assigned_to_name", "assigned_to"], "unassigned");
+          document.getElementById("sumBreached").textContent = fieldFirst(
+            s,
+            ["sla_breached"],
+            0,
+          );
 
-    return `
+          document
+            .getElementById("sumBreached")
+            .classList.remove("api-loading");
+
+          document.getElementById("sumAwaitingParts").textContent = fieldFirst(
+            s,
+            ["awaiting_parts"],
+            0,
+          );
+
+          document
+            .getElementById("sumAwaitingParts")
+            .classList.remove("api-loading");
+        } catch (error) {
+          console.error("Queue summary error:", error);
+
+          // Non-fatal — queue table still works.
+        }
+      }
+
+      function rowHtml(item) {
+        const id = fieldFirst(
+          item,
+          ["id", "_id", "case_id", "case_number", "reference"],
+          "",
+        );
+        const caseNo = fieldFirst(item, ["case_number", "reference", "id"], id);
+        const custName = fieldFirst(
+          item,
+          ["customer_name"],
+          (item.customer && item.customer.name) || "&mdash;",
+        );
+        const custPhone = fieldFirst(
+          item,
+          ["customer_phone"],
+          (item.customer && item.customer.phone) || "",
+        );
+        const product = fieldFirst(
+          item,
+          ["product_name"],
+          (item.product && item.product.name) || "&mdash;",
+        );
+        const fault = fieldFirst(
+          item,
+          ["fault_type", "fault"],
+          item.fault_description || "",
+        );
+        const status = fieldFirst(item, ["status"], "&mdash;");
+        const provider = fieldFirst(
+          item,
+          ["provider_name"],
+          (item.provider && item.provider.name) || "not routed",
+        );
+        const slaBreached = item.sla_breached === true || status === "breached";
+        const slaText = slaBreached
+          ? "breached"
+          : item.sla_due_at
+            ? "due " + fmtDateTime(item.sla_due_at)
+            : "&mdash;";
+        const assigned = fieldFirst(
+          item,
+          ["assigned_to_name", "assigned_to"],
+          "unassigned",
+        );
+
+        return `
       <tr class="clickable" data-id="${escapeHtml(id)}">
         <td class="cell-primary">#${escapeHtml(caseNo)}</td>
         <td>
@@ -159,62 +253,103 @@
         <td><span class="badge ${slaBreached ? "b-danger" : "b-muted"}">${slaText}</span></td>
         <td>${escapeHtml(assigned)}</td>
       </tr>`;
-  }
-
-  async function loadQueue() {
-    const tbody = document.getElementById("queueRows");
-    const empty = document.getElementById("queueEmpty");
-    hideBanner("queueError");
-    empty.style.display = "none";
-
-    try {
-      let path = "/v1/console/service-cases?page=1&per_page=50";
-      if (currentStatus) path += "&status=" + encodeURIComponent(currentStatus);
-
-      const data = await authFetch(path, { method: "GET" });
-      const items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
-
-      document.getElementById("rowCount").textContent = items.length + " case" + (items.length === 1 ? "" : "s");
-
-      if (!items.length) {
-        tbody.innerHTML = "";
-        empty.style.display = "block";
-      } else {
-        tbody.innerHTML = items.map(rowHtml).join("");
-        tbody.querySelectorAll("tr.clickable").forEach(tr => {
-          tr.addEventListener("click", () => {
-            window.location.href = "case-detail.html?id=" + encodeURIComponent(tr.dataset.id);
-          });
-        });
       }
 
-      renderRefreshedAt();
+      async function loadQueue() {
+        const tbody = document.getElementById("queueRows");
+        const empty = document.getElementById("queueEmpty");
+        hideBanner("queueError");
+        empty.style.display = "none";
 
-    } catch (error) {
-      console.error("Queue load error:", error);
-      tbody.innerHTML = "";
-      showBanner("queueError", error.message || "Unable to load the case queue.");
-    }
-  }
+        try {
+          let path = "/v1/console/service-cases?page=1&per_page=50";
 
-  document.getElementById("refreshBtn").addEventListener("click", () => { loadQueue(); loadSummary(); });
+          if (currentStatus) {
+            path += "&status=" + encodeURIComponent(currentStatus);
+          }
 
-  document.querySelectorAll("#statusTabs button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#statusTabs button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentStatus = btn.dataset.status;
+          if (currentAssignment) {
+            path += "&assigned_to=" + encodeURIComponent(currentAssignment);
+          }
+
+          if (currentSla) {
+            path += "&sla=" + encodeURIComponent(currentSla);
+          }
+
+          const data = await authFetch(path, { method: "GET" });
+          const items = Array.isArray(data)
+            ? data
+            : data.items || data.results || data.data || [];
+
+          document.getElementById("rowCount").textContent =
+            items.length + " case" + (items.length === 1 ? "" : "s");
+
+          if (!items.length) {
+            tbody.innerHTML = "";
+            empty.style.display = "block";
+          } else {
+            tbody.innerHTML = items.map(rowHtml).join("");
+            tbody.querySelectorAll("tr.clickable").forEach((tr) => {
+              tr.addEventListener("click", () => {
+                window.location.href =
+                  "case-detail.html?id=" + encodeURIComponent(tr.dataset.id);
+              });
+            });
+          }
+
+          document
+            .getElementById("assignmentFilter")
+            .addEventListener("change", (event) => {
+              currentAssignment = event.target.value;
+
+              loadQueue();
+            });
+
+          document
+            .getElementById("slaFilter")
+            .addEventListener("change", (event) => {
+              currentSla = event.target.value;
+
+              loadQueue();
+            });
+
+          renderRefreshedAt();
+        } catch (error) {
+          console.error("Queue load error:", error);
+          tbody.innerHTML = "";
+          showBanner(
+            "queueError",
+            error.message || "Unable to load the case queue.",
+          );
+        }
+      }
+
+      document.getElementById("refreshBtn").addEventListener("click", () => {
+        loadQueue();
+        loadSummary();
+      });
+
+      document.querySelectorAll("#statusTabs button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll("#statusTabs button")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentStatus = btn.dataset.status;
+          loadQueue();
+        });
+      });
+
       loadQueue();
-    });
-  });
+      loadSummary();
 
-  loadQueue();
-  loadSummary();
-
-  refreshTimer = setInterval(() => { loadQueue(); loadSummary(); }, 60000);
-  window.addEventListener("beforeunload", () => clearInterval(refreshTimer));
-
-</script>
-
-</body>
+      refreshTimer = setInterval(() => {
+        loadQueue();
+        loadSummary();
+      }, 60000);
+      window.addEventListener("beforeunload", () =>
+        clearInterval(refreshTimer),
+      );
+    </script>
+  </body>
 </html>

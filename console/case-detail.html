@@ -2,285 +2,3900 @@
 <html lang="en">
 
 <head>
+
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Case - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>
+    Case Detail - HomeKeep
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../shared/css/admin.css"
+  >
+
   <style>
-    .case-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; align-items: start; }
-    @media (max-width: 1100px) { .case-grid { grid-template-columns: 1fr; } }
-    .kv-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); font-size: 13.5px; }
-    .kv-row:last-child { border-bottom: none; }
-    .kv-row .k { color: var(--muted); }
-    .kv-row .v { font-weight: 600; text-align: right; }
-    .note-item { padding: 10px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
-    .note-item:last-child { border-bottom: none; }
-    .note-time { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+
+    .case-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+
+    @media (max-width: 1100px) {
+
+      .case-grid {
+        grid-template-columns: 1fr;
+      }
+
+    }
+
+
+    .case-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+
+    .card-pad {
+      padding: 22px;
+    }
+
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 13.5px;
+    }
+
+
+    .kv-row:last-child {
+      border-bottom: none;
+    }
+
+
+    .kv-row .k {
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
+
+    .kv-row .v {
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
+    }
+
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+
+    .section-description {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin: -5px 0 14px;
+    }
+
+
+    .error-text {
+      color: var(--danger);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .success-text {
+      color: var(--success);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .loading-text {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+
+    .status-help {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11.5px;
+      line-height: 1.5;
+    }
+
+
+    .status-current {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+
+    .status-current-label {
+      color: var(--muted);
+      font-size: 11.5px;
+    }
+
+
+    .timeline-item {
+      position: relative;
+      padding: 13px 0 13px 18px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+
+    .timeline-item:last-child {
+      border-bottom: none;
+    }
+
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 19px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+
+    .timeline-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+
+    .timeline-time {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+
+    .timeline-body {
+      margin-top: 7px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text-2);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+
+    .note-item {
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+
+    .note-item:last-child {
+      border-bottom: none;
+    }
+
+
+    .note-time {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+
+    .money-input-wrap {
+      position: relative;
+    }
+
+
+    .money-input-wrap .currency {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+
+    .money-input-wrap input {
+      padding-left: 30px;
+    }
+
+
+    .danger-box {
+      padding: 11px 12px;
+      border: 1px solid var(--danger-border);
+      background: var(--danger-bg);
+      border-radius: 8px;
+      color: var(--danger);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .warning-box {
+      padding: 11px 12px;
+      border: 1px solid var(--warning-border);
+      background: var(--warning-bg);
+      border-radius: 8px;
+      color: var(--warning);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .readonly-value {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-2);
+      min-height: 40px;
+      font-size: 13px;
+    }
+
+
+    .case-actions-disabled {
+      opacity: .65;
+      cursor: not-allowed;
+    }
+
   </style>
+
 </head>
+
 
 <body data-area="console">
 
+
 <div class="app">
+
 
   <aside id="sidebar"></aside>
 
+
   <main class="content">
 
+
+    <!-- =========================================================
+         TOP
+         ========================================================= -->
+
     <div class="topbar">
-      <a href="service-cases.html" class="btn ghost small">&larr; Back to queue</a>
+
+      <a
+        href="service-cases.html"
+        class="btn ghost small"
+      >
+        &larr; Back to queue
+      </a>
+
     </div>
 
-    <div id="caseError" class="api-error-banner" role="alert"></div>
 
-    <div id="caseBody" style="display:none">
+    <!-- =========================================================
+         ERROR
+         ========================================================= -->
+
+    <div
+      id="caseError"
+      class="api-error-banner"
+      role="alert"
+    ></div>
+
+
+    <!-- =========================================================
+         CASE BODY
+         ========================================================= -->
+
+    <div
+      id="caseBody"
+      style="display:none"
+    >
+
+
+      <!-- =======================================================
+           HEADER
+           ======================================================= -->
 
       <div class="page-head">
+
         <div>
-          <div class="eyebrow" id="caseEyebrow">Case</div>
-          <h2 id="caseTitle">&mdash;</h2>
-          <p class="muted" id="caseSub"></p>
+
+          <div
+            class="eyebrow"
+            id="caseEyebrow"
+          >
+            Case
+          </div>
+
+
+          <h2 id="caseTitle">
+            &mdash;
+          </h2>
+
+
+          <p
+            class="muted"
+            id="caseSub"
+          ></p>
+
         </div>
-        <span class="badge" id="caseStatusBadge"></span>
+
+
+        <span
+          id="caseStatusBadge"
+          class="badge"
+        ></span>
+
       </div>
+
+
 
       <div class="case-grid">
 
-        <div style="display:flex;flex-direction:column;gap:16px">
 
-          <div class="card" style="padding:22px">
-            <div class="section-title">Move the case</div>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <select id="statusSelect" style="min-width:200px">
-                <option value="new">new</option>
-                <option value="routed">routed</option>
-                <option value="scheduled">scheduled</option>
-                <option value="in_progress">in_progress</option>
-                <option value="pending_parts">pending_parts</option>
-                <option value="closed">closed</option>
-                <option value="cancelled">cancelled</option>
-                <option value="reopened">reopened</option>
-              </select>
-              <button class="btn accent" id="updateStatusBtn">Update status</button>
+        <!-- =====================================================
+             LEFT COLUMN
+             ===================================================== -->
+
+        <div class="case-column">
+
+
+          <!-- ===================================================
+               CASE STATUS
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Case status
             </div>
-            <p class="field-hint" style="margin-top:10px">
-              PATCH /v1/console/service-cases/&#123;id&#125; &mdash; your API should reject
-              transitions the case state machine doesn't allow.
+
+
+            <p class="section-description">
+              Only valid next states are available. The backend
+              independently enforces the state machine.
             </p>
-          </div>
 
-          <div class="card" style="padding:22px">
-            <div class="section-title">Outcome &amp; cost &mdash; required to close</div>
-            <label>
-              Resolution
-              <select id="resolutionSelect">
-                <option value="">Not set</option>
-                <option value="fixed">fixed</option>
-                <option value="replaced">replaced</option>
-                <option value="not_faulty">not_faulty</option>
-                <option value="customer_cancelled">customer_cancelled</option>
-                <option value="unrepairable">unrepairable</option>
-              </select>
-            </label>
-            <div class="form-row">
-              <label>Cost &mdash; parts (&#8362;)
-                <input id="costParts" type="number" min="0" step="0.01" placeholder="0">
+
+            <div class="form-stack">
+
+
+              <label>
+
+                Status
+
+
+                <select
+                  id="statusSelect"
+                ></select>
+
+
               </label>
-              <label>Cost &mdash; labour (&#8362;)
-                <input id="costLabour" type="number" min="0" step="0.01" placeholder="0">
-              </label>
+
+
+              <div
+                id="currentStatusInfo"
+                class="status-current"
+              ></div>
+
+
+              <div
+                id="statusHelp"
+                class="status-help"
+              ></div>
+
+
+              <div
+                id="statusError"
+                class="error-text"
+                style="display:none"
+              ></div>
+
+
+              <div class="form-actions">
+
+                <button
+                  id="updateStatusBtn"
+                  type="button"
+                  class="btn accent"
+                >
+                  Update status
+                </button>
+
+              </div>
+
+
             </div>
-            <button class="btn primary" id="saveOutcomeBtn">Save outcome &amp; close</button>
+
           </div>
 
-          <div class="card" style="padding:22px">
-            <div class="section-title">Internal notes &mdash; never shown to the customer</div>
-            <div id="notesList"></div>
-            <label style="margin-top:14px">Add a note
-              <textarea id="noteInput" rows="3" placeholder="Add a note for the next advisor&hellip;"></textarea>
+
+
+          <!-- ===================================================
+               ROUTING
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Routing &amp; appointment
+            </div>
+
+
+            <p class="section-description">
+              Assign the service provider, technician and appointment time.
+            </p>
+
+
+            <div class="form-stack">
+
+
+              <label>
+
+                Service provider
+
+
+                <select
+                  id="providerSelect"
+                >
+
+                  <option value="">
+                    Unassigned
+                  </option>
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Technician name
+
+
+                <input
+                  id="technicianName"
+                  type="text"
+                  maxlength="150"
+                  placeholder="Technician name"
+                >
+
+              </label>
+
+
+              <label>
+
+                Scheduled at
+
+
+                <input
+                  id="scheduledAt"
+                  type="datetime-local"
+                >
+
+              </label>
+
+
+              <div
+                id="routingError"
+                class="error-text"
+                style="display:none"
+              ></div>
+
+
+              <div class="form-actions">
+
+                <button
+                  id="saveRoutingBtn"
+                  type="button"
+                  class="btn primary"
+                >
+                  Save routing
+                </button>
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+
+          <!-- ===================================================
+               OUTCOME
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Outcome &amp; cost
+            </div>
+
+
+            <p class="section-description">
+              Money is entered in ILS and sent to the API as agorot.
+              A resolution is required before closing a case.
+            </p>
+
+
+            <div class="form-stack">
+
+
+              <label>
+
+                Resolution
+
+
+                <select
+                  id="resolutionSelect"
+                >
+
+                  <option value="">
+                    Not set
+                  </option>
+
+                  <option value="fixed">
+                    fixed
+                  </option>
+
+                  <option value="replaced">
+                    replaced
+                  </option>
+
+                  <option value="not_faulty">
+                    not_faulty
+                  </option>
+
+                  <option value="customer_cancelled">
+                    customer_cancelled
+                  </option>
+
+                  <option value="unrepairable">
+                    unrepairable
+                  </option>
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Total service cost (ILS)
+
+
+                <div class="money-input-wrap">
+
+                  <span class="currency">
+                    ₪
+                  </span>
+
+
+                  <input
+                    id="cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  >
+
+                </div>
+
+              </label>
+
+
+              <label>
+
+                Charged to customer (ILS)
+
+
+                <div class="money-input-wrap">
+
+                  <span class="currency">
+                    ₪
+                  </span>
+
+
+                  <input
+                    id="chargedToCustomer"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  >
+
+                </div>
+
+              </label>
+
+
+              <div
+                id="outcomeError"
+                class="error-text"
+                style="display:none"
+              ></div>
+
+
+              <div class="form-actions">
+
+
+                <button
+                  id="saveOutcomeBtn"
+                  type="button"
+                  class="btn primary"
+                >
+                  Save outcome
+                </button>
+
+
+                <button
+                  id="saveOutcomeCloseBtn"
+                  type="button"
+                  class="btn accent"
+                >
+                  Save outcome &amp; close
+                </button>
+
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+
+          <!-- ===================================================
+               INTERNAL NOTES
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Internal notes
+            </div>
+
+
+            <p class="section-description">
+              Internal notes are stored as case events and are not
+              customer-visible.
+            </p>
+
+
+            <div id="notesList">
+
+              <p class="loading-text">
+                Loading notes...
+              </p>
+
+            </div>
+
+
+            <label style="margin-top:14px">
+
+              Add a note
+
+
+              <textarea
+                id="noteInput"
+                rows="4"
+                maxlength="2000"
+                placeholder="Add a note for the next advisor..."
+              ></textarea>
+
             </label>
-            <button class="btn ghost" id="addNoteBtn">Add note</button>
+
+
+            <div class="form-actions">
+
+              <button
+                id="addNoteBtn"
+                type="button"
+                class="btn ghost"
+              >
+                Add note
+              </button>
+
+            </div>
+
+
           </div>
+
+
+
+          <!-- ===================================================
+               TIMELINE
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Case timeline
+            </div>
+
+
+            <p class="section-description">
+              Append-only events recorded for this service case.
+            </p>
+
+
+            <div id="timelineList">
+
+              <p class="loading-text">
+                Loading timeline...
+              </p>
+
+            </div>
+
+
+          </div>
+
 
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:16px">
 
-          <div class="card" style="padding:20px">
-            <div class="section-title">Customer</div>
-            <div id="customerBlock"></div>
-            <a id="customerLink" class="btn soft small full" style="margin-top:12px">Open the 360 view &rarr;</a>
+
+        <!-- =====================================================
+             RIGHT COLUMN
+             ===================================================== -->
+
+        <div class="case-column">
+
+
+          <!-- ===================================================
+               CUSTOMER
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Customer
+            </div>
+
+
+            <div id="customerBlock">
+
+              <p class="loading-text">
+                Loading...
+              </p>
+
+            </div>
+
+
+            <a
+              id="customerLink"
+              class="btn soft small full"
+              style="margin-top:12px"
+            >
+              Open the 360 view &rarr;
+            </a>
+
           </div>
 
-          <div class="card" style="padding:20px">
-            <div class="section-title">Product</div>
-            <div id="productBlock"></div>
+
+
+          <!-- ===================================================
+               PRODUCT
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Product
+            </div>
+
+
+            <div id="productBlock">
+
+              <p class="loading-text">
+                Loading...
+              </p>
+
+            </div>
+
           </div>
 
-          <div class="card" style="padding:20px">
-            <div class="section-title">Coverage &amp; SLA</div>
-            <div id="slaBlock"></div>
+
+
+          <!-- ===================================================
+               COVERAGE / SLA
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Coverage &amp; SLA
+            </div>
+
+
+            <div id="slaBlock">
+
+              <p class="loading-text">
+                Loading...
+              </p>
+
+            </div>
+
           </div>
+
+
+
+          <!-- ===================================================
+               CASE INFORMATION
+               =================================================== -->
+
+          <div class="card card-pad">
+
+            <div class="section-title">
+              Case information
+            </div>
+
+
+            <div id="caseInfoBlock">
+
+              <p class="loading-text">
+                Loading...
+              </p>
+
+            </div>
+
+          </div>
+
 
         </div>
+
 
       </div>
+
+
     </div>
 
+
   </main>
+
+
 </div>
+
 
 <script src="../shared/js/config.js"></script>
 <script src="../shared/js/api.js"></script>
+
+
 <script>
 
-  renderSidebar("service-cases");
 
-  const caseId = qs("id");
-  if (!caseId) {
-    showBanner("caseError", "No case id was given. Go back to the queue and open a case from there.");
+/*
+|--------------------------------------------------------------------------
+| Sidebar
+|--------------------------------------------------------------------------
+*/
+
+renderSidebar(
+  "service-cases"
+);
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Case ID
+|--------------------------------------------------------------------------
+*/
+
+const urlParams =
+  new URLSearchParams(
+    window.location.search
+  );
+
+
+const caseId =
+  (
+    urlParams.get(
+      "id"
+    ) ||
+    ""
+  ).trim();
+
+
+
+/*
+|--------------------------------------------------------------------------
+| State
+|--------------------------------------------------------------------------
+*/
+
+let currentCase =
+  null;
+
+
+let serviceProviders =
+  [];
+
+
+let isSaving =
+  false;
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Backend state machine
+|--------------------------------------------------------------------------
+|
+| This mirrors the backend only for UI purposes.
+|
+| IMPORTANT:
+| The backend remains the final authority.
+|
+*/
+
+const SERVICE_CASE_TRANSITIONS = {
+
+  new: [
+    "routed",
+    "cancelled"
+  ],
+
+  routed: [
+    "scheduled",
+    "cancelled"
+  ],
+
+  scheduled: [
+    "in_progress",
+    "scheduled",
+    "cancelled"
+  ],
+
+  in_progress: [
+    "closed",
+    "pending_parts"
+  ],
+
+  pending_parts: [
+    "scheduled",
+    "closed"
+  ],
+
+  closed: [
+    "reopened"
+  ],
+
+  reopened: [
+    "scheduled",
+    "closed"
+  ],
+
+  cancelled: []
+
+};
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+function fieldFirst(
+  object,
+  keys,
+  fallback = ""
+) {
+
+  for (
+    const key of keys
+  ) {
+
+    if (
+      object &&
+      object[key] !== undefined &&
+      object[key] !== null &&
+      object[key] !== ""
+    ) {
+
+      return object[key];
+
+    }
+
   }
 
-  let currentCase = null;
 
-  function fieldFirst(obj, keys, fallback) {
-    for (const k of keys) {
-      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
-    }
-    return fallback;
-  }
+  return fallback;
 
-  function kv(k, v) {
-    return `<div class="kv-row"><span class="k">${escapeHtml(k)}</span><span class="v">${v}</span></div>`;
-  }
+}
 
-  function renderCase(item) {
-    currentCase = item;
 
-    const caseNo = fieldFirst(item, ["case_number", "reference", "id"], caseId);
-    const opened = fieldFirst(item, ["opened_at", "created_at"], null);
-    const status = fieldFirst(item, ["status"], "&mdash;");
-    const faultTitle = fieldFirst(item, ["fault_type", "title", "fault_description"], "Service case");
 
-    document.getElementById("caseEyebrow").textContent = "Case #" + caseNo + (opened ? " · opened " + fmtDateTime(opened) : "");
-    document.getElementById("caseTitle").textContent = faultTitle;
-    document.getElementById("caseSub").textContent = fieldFirst(item, ["fault_description"], "");
-    const badge = document.getElementById("caseStatusBadge");
-    badge.textContent = status;
-    badge.className = "badge " + statusBadgeClass(status);
+function getCaseId(
+  item
+) {
 
-    document.getElementById("statusSelect").value = status;
-    document.getElementById("resolutionSelect").value = fieldFirst(item, ["resolution"], "");
-    document.getElementById("costParts").value = fieldFirst(item, ["cost_parts"], "");
-    document.getElementById("costLabour").value = fieldFirst(item, ["cost_labour"], "");
+  return fieldFirst(
+    item,
+    [
+      "id",
+      "_id",
+      "case_id",
+      "case_number",
+      "reference"
+    ],
+    ""
+  );
 
-    const customer = item.customer || {};
-    document.getElementById("customerBlock").innerHTML =
-      kv("Name", escapeHtml(fieldFirst(customer, ["name"], item.customer_name || "&mdash;"))) +
-      kv("Phone", escapeHtml(fieldFirst(customer, ["phone"], item.customer_phone || "&mdash;"))) +
-      kv("Address", escapeHtml(fieldFirst(customer, ["address"], "&mdash;")));
-    const custId = fieldFirst(customer, ["id"], item.customer_id || "");
-    const custLink = document.getElementById("customerLink");
-    if (custId) {
-      custLink.href = "customer-detail.html?id=" + encodeURIComponent(custId);
-    } else {
-      custLink.style.display = "none";
-    }
+}
 
-    const product = item.product || {};
-    document.getElementById("productBlock").innerHTML =
-      kv("Product", escapeHtml(fieldFirst(product, ["name"], item.product_name || "&mdash;"))) +
-      kv("Model", escapeHtml(fieldFirst(product, ["model"], "&mdash;"))) +
-      kv("Serial", escapeHtml(fieldFirst(product, ["serial", "serial_number"], "&mdash;")));
 
-    const slaBreached = item.sla_breached === true;
-    document.getElementById("slaBlock").innerHTML =
-      kv("Coverage", escapeHtml(fieldFirst(item, ["coverage_source"], "&mdash;"))) +
-      kv("Provider", escapeHtml(fieldFirst(item.provider || {}, ["name"], item.provider_name || "not routed"))) +
-      kv("SLA", slaBreached ? '<span class="badge b-danger">breached</span>' : escapeHtml(item.sla_due_at ? "due " + fmtDateTime(item.sla_due_at) : "&mdash;")) +
-      kv("Assigned to", escapeHtml(fieldFirst(item, ["assigned_to_name", "assigned_to"], "unassigned")));
 
-    const notes = item.notes || item.internal_notes || [];
-    document.getElementById("notesList").innerHTML = notes.length
-      ? notes.map(n => `<div class="note-item">${escapeHtml(n.note || n.text || n)}<div class="note-time">${n.created_at ? fmtDateTime(n.created_at) : ""}${n.author ? " · " + escapeHtml(n.author) : ""}</div></div>`).join("")
-      : '<p class="muted mini">No notes yet.</p>';
+function escapeText(
+  value
+) {
 
-    document.getElementById("caseBody").style.display = "block";
-  }
+  return escapeHtml(
+    String(
+      value ??
+      ""
+    )
+  );
 
-  async function loadCase() {
-    if (!caseId) return;
-    hideBanner("caseError");
-    try {
-      const data = await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), { method: "GET" });
-      renderCase(data);
-    } catch (error) {
-      console.error("Case load error:", error);
-      showBanner("caseError", error.message || "Unable to load this case.");
-    }
-  }
+}
 
-  document.getElementById("updateStatusBtn").addEventListener("click", async () => {
-    const status = document.getElementById("statusSelect").value;
-    try {
-      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), {
-        method: "PATCH",
-        body: { status }
-      });
-      toast("Case moved to " + status);
-      loadCase();
-    } catch (error) {
-      toast(error.message || "Could not update the case status.", "err");
-    }
-  });
 
-  document.getElementById("saveOutcomeBtn").addEventListener("click", async () => {
-    const resolution = document.getElementById("resolutionSelect").value;
-    const cost_parts = document.getElementById("costParts").value;
-    const cost_labour = document.getElementById("costLabour").value;
 
-    if (!resolution) {
-      toast("Pick a resolution before closing the case.", "err");
-      return;
-    }
+function formatStatus(
+  status
+) {
 
-    try {
-      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId), {
-        method: "PATCH",
-        body: {
-          status: "closed",
-          resolution,
-          cost_parts: cost_parts ? Number(cost_parts) : undefined,
-          cost_labour: cost_labour ? Number(cost_labour) : undefined
+  return String(
+    status ||
+    ""
+  )
+    .replaceAll(
+      "_",
+      " "
+    );
+
+}
+
+
+
+function getErrorMessage(
+  error,
+  fallback
+) {
+
+  return (
+    error?.message ||
+    fallback
+  );
+
+}
+
+
+
+function clearInlineErrors() {
+
+  [
+    "statusError",
+    "routingError",
+    "outcomeError"
+  ]
+    .forEach(
+      id => {
+
+        const element =
+          document.getElementById(
+            id
+          );
+
+
+        if (!element) {
+          return;
         }
-      });
-      toast("Case closed.");
-      loadCase();
-    } catch (error) {
-      toast(error.message || "Could not close the case.", "err");
-    }
-  });
 
-  document.getElementById("addNoteBtn").addEventListener("click", async () => {
-    const noteInput = document.getElementById("noteInput");
-    const note = noteInput.value.trim();
-    if (!note) return;
-    try {
-      await authFetch("/v1/console/service-cases/" + encodeURIComponent(caseId) + "/notes", {
+
+        element.textContent =
+          "";
+
+
+        element.style.display =
+          "none";
+
+      }
+    );
+
+}
+
+
+
+function showInlineError(
+  id,
+  message
+) {
+
+  const element =
+    document.getElementById(
+      id
+    );
+
+
+  if (!element) {
+    return;
+  }
+
+
+  element.textContent =
+    message ||
+    "Something went wrong.";
+
+
+  element.style.display =
+    "block";
+
+}
+
+
+
+function statusBadgeClass(
+  status
+) {
+
+  switch (
+    String(
+      status ||
+      ""
+    ).toLowerCase()
+  ) {
+
+    case "closed":
+      return "b-success";
+
+    case "cancelled":
+      return "b-muted";
+
+    case "pending_parts":
+      return "b-warning";
+
+    case "reopened":
+      return "b-warning";
+
+    case "in_progress":
+      return "b-accent";
+
+    case "scheduled":
+      return "b-accent";
+
+    case "routed":
+      return "b-accent";
+
+    case "new":
+    default:
+      return "b-muted";
+
+  }
+
+}
+
+
+
+function formatMoneyFromAgorot(
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+
+    return "—";
+
+  }
+
+
+  const number =
+    Number(
+      value
+    );
+
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+
+    return "—";
+
+  }
+
+
+  return (
+    number /
+    100
+  ).toLocaleString(
+    "en-US",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }
+  ) +
+  " ₪";
+
+}
+
+
+
+function parseMoneyToAgorot(
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    String(
+      value
+    ).trim() === ""
+  ) {
+
+    return undefined;
+
+  }
+
+
+  const number =
+    Number(
+      value
+    );
+
+
+  if (
+    !Number.isFinite(
+      number
+    ) ||
+    number < 0
+  ) {
+
+    throw new Error(
+      "Enter a valid non-negative amount."
+    );
+
+  }
+
+
+  return Math.round(
+    number * 100
+  );
+
+}
+
+
+
+function toDateTimeLocalValue(
+  value
+) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  const date =
+    new Date(
+      value
+    );
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return "";
+
+  }
+
+
+  const pad =
+    number =>
+      String(
+        number
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(
+      date.getMonth() + 1
+    ) +
+    "-" +
+    pad(
+      date.getDate()
+    ) +
+    "T" +
+    pad(
+      date.getHours()
+    ) +
+    ":" +
+    pad(
+      date.getMinutes()
+    )
+  );
+
+}
+
+
+
+function kv(
+  label,
+  value
+) {
+
+  return `
+
+    <div class="kv-row">
+
+      <span class="k">
+        ${escapeText(label)}
+      </span>
+
+      <span class="v">
+        ${value}
+      </span>
+
+    </div>
+
+  `;
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Status UI
+|--------------------------------------------------------------------------
+*/
+
+function getAllowedNextStatuses(
+  status
+) {
+
+  return [
+    ...(SERVICE_CASE_TRANSITIONS[
+      status
+    ] || [])
+  ];
+
+}
+
+
+
+function renderStatusOptions(
+  status
+) {
+
+  const select =
+    document.getElementById(
+      "statusSelect"
+    );
+
+
+  const allowed =
+    getAllowedNextStatuses(
+      status
+    );
+
+
+  select.innerHTML =
+    "";
+
+
+  /*
+   * Always keep the current status visible.
+   */
+
+  const currentOption =
+    document.createElement(
+      "option"
+    );
+
+
+  currentOption.value =
+    status;
+
+
+  currentOption.textContent =
+    formatStatus(
+      status
+    ) +
+    " (current)";
+
+
+  currentOption.selected =
+    true;
+
+
+  select.appendChild(
+    currentOption
+  );
+
+
+  /*
+   * Add only valid transitions.
+   */
+
+  allowed
+    .forEach(
+      nextStatus => {
+
+        /*
+         * Avoid duplicate scheduled
+         * option because it can be a
+         * valid self-transition.
+         */
+
+        if (
+          nextStatus ===
+          status
+        ) {
+
+          return;
+
+        }
+
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          nextStatus;
+
+
+        option.textContent =
+          formatStatus(
+            nextStatus
+          );
+
+
+        select.appendChild(
+          option
+        );
+
+      }
+    );
+
+
+  /*
+   * Cancelled has no transitions.
+   */
+
+  const button =
+    document.getElementById(
+      "updateStatusBtn"
+    );
+
+
+  button.disabled =
+    allowed.length === 0;
+
+
+  if (
+    allowed.length === 0
+  ) {
+
+    button.classList.add(
+      "case-actions-disabled"
+    );
+
+  } else {
+
+    button.classList.remove(
+      "case-actions-disabled"
+    );
+
+  }
+
+
+  document
+    .getElementById(
+      "currentStatusInfo"
+    )
+    .innerHTML = `
+
+      <span class="status-current-label">
+        Current:
+      </span>
+
+      <span class="badge ${statusBadgeClass(status)}">
+        ${escapeText(formatStatus(status))}
+      </span>
+
+    `;
+
+
+  const help =
+    document.getElementById(
+      "statusHelp"
+    );
+
+
+  if (
+    allowed.length
+  ) {
+
+    help.textContent =
+      "Allowed next states: " +
+      allowed
+        .map(
+          formatStatus
+        )
+        .join(
+          ", "
+        ) +
+      ".";
+
+  } else {
+
+    help.textContent =
+      "This case has no available status transitions.";
+
+  }
+
+}
+
+
+
+function renderStatusState(
+  item
+) {
+
+  const status =
+    fieldFirst(
+      item,
+      ["status"],
+      ""
+    );
+
+
+  renderStatusOptions(
+    status
+  );
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Customer
+|--------------------------------------------------------------------------
+*/
+
+function renderCustomer(
+  item
+) {
+
+  const customer =
+    item.customer ||
+    {};
+
+
+  const name =
+    fieldFirst(
+      customer,
+      ["name"],
+      fieldFirst(
+        item,
+        ["customer_name"],
+        "—"
+      )
+    );
+
+
+  const phone =
+    fieldFirst(
+      customer,
+      ["phone"],
+      fieldFirst(
+        item,
+        ["customer_phone"],
+        "—"
+      )
+    );
+
+
+  const email =
+    fieldFirst(
+      customer,
+      ["email"],
+      ""
+    );
+
+
+  document
+    .getElementById(
+      "customerBlock"
+    )
+    .innerHTML =
+
+      kv(
+        "Name",
+        escapeText(
+          name
+        )
+      ) +
+
+      kv(
+        "Phone",
+        escapeText(
+          phone
+        )
+      ) +
+
+      (
+        email
+          ? kv(
+              "Email",
+              escapeText(
+                email
+              )
+            )
+          : ""
+      );
+
+
+  const customerId =
+    fieldFirst(
+      customer,
+      [
+        "id",
+        "_id"
+      ],
+      item.customer_id ||
+      ""
+    );
+
+
+  const customerLink =
+    document.getElementById(
+      "customerLink"
+    );
+
+
+  if (
+    customerId
+  ) {
+
+    customerLink.href =
+      "customer-detail.html?id=" +
+      encodeURIComponent(
+        customerId
+      );
+
+
+    customerLink.style.display =
+      "";
+
+  } else {
+
+    customerLink.style.display =
+      "none";
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Product
+|--------------------------------------------------------------------------
+*/
+
+function renderProduct(
+  item
+) {
+
+  const product =
+    item.product ||
+    {};
+
+
+  const name =
+    fieldFirst(
+      product,
+      ["name"],
+      fieldFirst(
+        item,
+        ["product_name"],
+        "—"
+      )
+    );
+
+
+  const model =
+    fieldFirst(
+      product,
+      ["model"],
+      "—"
+    );
+
+
+  const serial =
+    fieldFirst(
+      product,
+      [
+        "serial_number",
+        "serial"
+      ],
+      fieldFirst(
+        item,
+        ["serial_number"],
+        "—"
+      )
+    );
+
+
+  const category =
+    product.category ||
+    {};
+
+
+  const categoryName =
+    fieldFirst(
+      category,
+      ["name"],
+      ""
+    );
+
+
+  document
+    .getElementById(
+      "productBlock"
+    )
+    .innerHTML =
+
+      kv(
+        "Product",
+        escapeText(
+          name
+        )
+      ) +
+
+      kv(
+        "Model",
+        escapeText(
+          model
+        )
+      ) +
+
+      kv(
+        "Serial",
+        escapeText(
+          serial
+        )
+      ) +
+
+      (
+        categoryName
+          ? kv(
+              "Category",
+              escapeText(
+                categoryName
+              )
+            )
+          : ""
+      );
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SLA
+|--------------------------------------------------------------------------
+*/
+
+function renderSla(
+  item
+) {
+
+  const provider =
+    item.provider ||
+    {};
+
+
+  const providerName =
+    fieldFirst(
+      provider,
+      ["name"],
+      fieldFirst(
+        item,
+        [
+          "provider_name",
+          "assigned_to_name",
+          "assigned_to"
+        ],
+        "Unassigned"
+      )
+    );
+
+
+  const coverage =
+    fieldFirst(
+      item,
+      [
+        "coverage_source",
+        "coverage"
+      ],
+      "—"
+    );
+
+
+  const slaDueAt =
+    fieldFirst(
+      item,
+      ["sla_due_at"],
+      null
+    );
+
+
+  const breached =
+    item.sla_breached === true;
+
+
+  const slaValue =
+    breached
+
+      ? `
+          <span class="badge b-danger">
+            breached
+          </span>
+        `
+
+      : slaDueAt
+
+        ? escapeText(
+            "Due " +
+            fmtDateTime(
+              slaDueAt
+            )
+          )
+
+        : "—";
+
+
+  document
+    .getElementById(
+      "slaBlock"
+    )
+    .innerHTML =
+
+      kv(
+        "Coverage",
+        escapeText(
+          coverage
+        )
+      ) +
+
+      kv(
+        "Provider",
+        escapeText(
+          providerName
+        )
+      ) +
+
+      kv(
+        "SLA",
+        slaValue
+      ) +
+
+      kv(
+        "SLA due",
+        slaDueAt
+          ? escapeText(
+              fmtDateTime(
+                slaDueAt
+              )
+            )
+          : "—"
+      ) +
+
+      kv(
+        "Technician",
+        escapeText(
+          fieldFirst(
+            item,
+            ["technician_name"],
+            "—"
+          )
+        )
+      ) +
+
+      kv(
+        "Scheduled",
+        item.scheduled_at
+          ? escapeText(
+              fmtDateTime(
+                item.scheduled_at
+              )
+            )
+          : "—"
+      );
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Case information
+|--------------------------------------------------------------------------
+*/
+
+function renderCaseInformation(
+  item
+) {
+
+  const openedAt =
+    fieldFirst(
+      item,
+      [
+        "opened_at",
+        "created_at"
+      ],
+      null
+    );
+
+
+  const closedAt =
+    fieldFirst(
+      item,
+      ["closed_at"],
+      null
+    );
+
+
+  document
+    .getElementById(
+      "caseInfoBlock"
+    )
+    .innerHTML =
+
+      kv(
+        "Case ID",
+        escapeText(
+          getCaseId(
+            item
+          )
+        )
+      ) +
+
+      kv(
+        "Fault type",
+        escapeText(
+          fieldFirst(
+            item,
+            ["fault_type"],
+            "—"
+          )
+        )
+      ) +
+
+      kv(
+        "Description",
+        escapeText(
+          fieldFirst(
+            item,
+            ["description"],
+            "—"
+          )
+        )
+      ) +
+
+      kv(
+        "Opened",
+        openedAt
+          ? escapeText(
+              fmtDateTime(
+                openedAt
+              )
+            )
+          : "—"
+      ) +
+
+      kv(
+        "Closed",
+        closedAt
+          ? escapeText(
+              fmtDateTime(
+                closedAt
+              )
+            )
+          : "—"
+      ) +
+
+      kv(
+        "Cost",
+        formatMoneyFromAgorot(
+          item.cost
+        )
+      ) +
+
+      kv(
+        "Charged to customer",
+        formatMoneyFromAgorot(
+          item.charged_to_customer
+        )
+      ) +
+
+      kv(
+        "Resolution",
+        escapeText(
+          fieldFirst(
+            item,
+            ["resolution"],
+            "—"
+          )
+        )
+      );
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Routing
+|--------------------------------------------------------------------------
+*/
+
+function renderRouting(
+  item
+) {
+
+  const providerId =
+    fieldFirst(
+      item,
+      [
+        "service_provider_id"
+      ],
+      ""
+    );
+
+
+  document
+    .getElementById(
+      "providerSelect"
+    )
+    .value =
+      providerId ||
+      "";
+
+
+  document
+    .getElementById(
+      "technicianName"
+    )
+    .value =
+      fieldFirst(
+        item,
+        [
+          "technician_name"
+        ],
+        ""
+      );
+
+
+  document
+    .getElementById(
+      "scheduledAt"
+    )
+    .value =
+      toDateTimeLocalValue(
+        item.scheduled_at
+      );
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Outcome
+|--------------------------------------------------------------------------
+*/
+
+function renderOutcome(
+  item
+) {
+
+  document
+    .getElementById(
+      "resolutionSelect"
+    )
+    .value =
+      fieldFirst(
+        item,
+        ["resolution"],
+        ""
+      );
+
+
+  const cost =
+    document.getElementById(
+      "cost"
+    );
+
+
+  if (
+    item.cost !==
+    null &&
+    item.cost !==
+    undefined
+  ) {
+
+    cost.value =
+      (
+        Number(
+          item.cost
+        ) /
+        100
+      ).toFixed(
+        2
+      );
+
+  } else {
+
+    cost.value =
+      "";
+
+  }
+
+
+  const charged =
+    document.getElementById(
+      "chargedToCustomer"
+    );
+
+
+  if (
+    item.charged_to_customer !==
+    null &&
+    item.charged_to_customer !==
+    undefined
+  ) {
+
+    charged.value =
+      (
+        Number(
+          item.charged_to_customer
+        ) /
+        100
+      ).toFixed(
+        2
+      );
+
+  } else {
+
+    charged.value =
+      "";
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Timeline
+|--------------------------------------------------------------------------
+*/
+
+function eventTitle(
+  event
+) {
+
+  switch (
+    event.type
+  ) {
+
+    case "case_opened":
+      return "Case opened";
+
+    case "status_changed":
+      return "Status changed";
+
+    case "case_updated":
+      return "Case updated";
+
+    case "internal_note":
+      return "Internal note";
+
+    default:
+      return formatStatus(
+        event.type ||
+        "Case event"
+      );
+
+  }
+
+}
+
+
+
+function eventDescription(
+  event
+) {
+
+  const payload =
+    event.payload ||
+    {};
+
+
+  if (
+    event.type ===
+    "status_changed"
+  ) {
+
+    return (
+      formatStatus(
+        payload.from ||
+        "—"
+      ) +
+      " → " +
+      formatStatus(
+        payload.to ||
+        "—"
+      )
+    );
+
+  }
+
+
+  if (
+    event.type ===
+    "internal_note"
+  ) {
+
+    return (
+      payload.note ||
+      ""
+    );
+
+  }
+
+
+  if (
+    event.type ===
+    "case_updated"
+  ) {
+
+    return "Case information was updated.";
+
+  }
+
+
+  if (
+    event.type ===
+    "case_opened"
+  ) {
+
+    return (
+      payload.description ||
+      ""
+    );
+
+  }
+
+
+  return "";
+
+}
+
+
+
+function renderTimeline(
+  timeline
+) {
+
+  const events =
+    Array.isArray(
+      timeline
+    )
+      ? timeline
+      : [];
+
+
+  const element =
+    document.getElementById(
+      "timelineList"
+    );
+
+
+  if (
+    !events.length
+  ) {
+
+    element.innerHTML =
+      `
+        <p class="muted mini">
+          No timeline events yet.
+        </p>
+      `;
+
+    return;
+
+  }
+
+
+  element.innerHTML =
+    events
+      .map(
+        event => {
+
+          const description =
+            eventDescription(
+              event
+            );
+
+
+          return `
+
+            <div class="timeline-item">
+
+              <div class="timeline-title">
+
+                ${escapeText(
+                  eventTitle(
+                    event
+                  )
+                )}
+
+              </div>
+
+
+              <div class="timeline-time">
+
+                ${
+                  event.created_at
+                    ? escapeText(
+                        fmtDateTime(
+                          event.created_at
+                        )
+                      )
+                    : ""
+                }
+
+                ${
+                  event.actor_type
+                    ? " · " +
+                      escapeText(
+                        event.actor_type
+                      )
+                    : ""
+                }
+
+              </div>
+
+
+              ${
+                description
+                  ? `
+                    <div class="timeline-body">
+                      ${escapeText(
+                        description
+                      )}
+                    </div>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Notes
+|--------------------------------------------------------------------------
+*/
+
+function renderNotes(
+  timeline
+) {
+
+  const notes =
+    (
+      Array.isArray(
+        timeline
+      )
+        ? timeline
+        : []
+    )
+      .filter(
+        event =>
+          event.type ===
+          "internal_note"
+      );
+
+
+  const element =
+    document.getElementById(
+      "notesList"
+    );
+
+
+  if (
+    !notes.length
+  ) {
+
+    element.innerHTML =
+      `
+        <p class="muted mini">
+          No internal notes yet.
+        </p>
+      `;
+
+    return;
+
+  }
+
+
+  element.innerHTML =
+    notes
+      .map(
+        event => {
+
+          const note =
+            event.payload?.note ||
+            "";
+
+
+          return `
+
+            <div class="note-item">
+
+              <div>
+                ${escapeText(
+                  note
+                )}
+              </div>
+
+
+              <div class="note-time">
+
+                ${
+                  event.created_at
+                    ? escapeText(
+                        fmtDateTime(
+                          event.created_at
+                        )
+                      )
+                    : ""
+                }
+
+                ${
+                  event.actor_type
+                    ? " · " +
+                      escapeText(
+                        event.actor_type
+                      )
+                    : ""
+                }
+
+              </div>
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Render entire case
+|--------------------------------------------------------------------------
+*/
+
+function renderCase(
+  item
+) {
+
+  currentCase =
+    item;
+
+
+  const caseNumber =
+    fieldFirst(
+      item,
+      [
+        "case_number",
+        "reference",
+        "id",
+        "_id"
+      ],
+      caseId
+    );
+
+
+  const status =
+    fieldFirst(
+      item,
+      ["status"],
+      ""
+    );
+
+
+  const openedAt =
+    fieldFirst(
+      item,
+      [
+        "opened_at",
+        "created_at"
+      ],
+      null
+    );
+
+
+  const title =
+    fieldFirst(
+      item,
+      [
+        "fault_type",
+        "title"
+      ],
+      "Service case"
+    );
+
+
+  document
+    .getElementById(
+      "caseEyebrow"
+    )
+    .textContent =
+      "Case #" +
+      caseNumber +
+      (
+        openedAt
+          ? " · opened " +
+            fmtDateTime(
+              openedAt
+            )
+          : ""
+      );
+
+
+  document
+    .getElementById(
+      "caseTitle"
+    )
+    .textContent =
+      title;
+
+
+  document
+    .getElementById(
+      "caseSub"
+    )
+    .textContent =
+      fieldFirst(
+        item,
+        ["description"],
+        ""
+      );
+
+
+  const badge =
+    document.getElementById(
+      "caseStatusBadge"
+    );
+
+
+  badge.textContent =
+    formatStatus(
+      status
+    );
+
+
+  badge.className =
+    "badge " +
+    statusBadgeClass(
+      status
+    );
+
+
+  renderStatusState(
+    item
+  );
+
+
+  renderCustomer(
+    item
+  );
+
+
+  renderProduct(
+    item
+  );
+
+
+  renderSla(
+    item
+  );
+
+
+  renderCaseInformation(
+    item
+  );
+
+
+  renderRouting(
+    item
+  );
+
+
+  renderOutcome(
+    item
+  );
+
+
+  const timeline =
+    Array.isArray(
+      item.timeline
+    )
+      ? item.timeline
+      : [];
+
+
+  renderTimeline(
+    timeline
+  );
+
+
+  renderNotes(
+    timeline
+  );
+
+
+  document
+    .getElementById(
+      "caseBody"
+    )
+    .style.display =
+      "block";
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Load case
+|--------------------------------------------------------------------------
+*/
+
+async function loadCase() {
+
+  if (
+    !caseId
+  ) {
+
+    showBanner(
+      "caseError",
+      "No case ID was provided. Go back to the queue and open a case."
+    );
+
+
+    return;
+
+  }
+
+
+  try {
+
+    hideBanner(
+      "caseError"
+    );
+
+
+    clearInlineErrors();
+
+
+    const response =
+      await authFetch(
+        "/v1/console/service-cases/" +
+        encodeURIComponent(
+          caseId
+        ),
+        {
+          method: "GET"
+        }
+      );
+
+
+    const item =
+      response?.data ||
+      response;
+
+
+    if (
+      !item
+    ) {
+
+      throw new Error(
+        "The API returned an empty case."
+      );
+
+    }
+
+
+    renderCase(
+      item
+    );
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Case load error:",
+      error
+    );
+
+
+    showBanner(
+      "caseError",
+      getErrorMessage(
+        error,
+        "Unable to load this service case."
+      )
+    );
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Load service providers
+|--------------------------------------------------------------------------
+*/
+
+async function loadServiceProviders() {
+
+  const select =
+    document.getElementById(
+      "providerSelect"
+    );
+
+
+  try {
+
+    const response =
+      await authFetch(
+        "/v1/admin/service-providers?active=true&page=1&per_page=100",
+        {
+          method: "GET"
+        }
+      );
+
+
+    const providers =
+      Array.isArray(
+        response
+      )
+        ? response
+
+        : Array.isArray(
+            response?.data
+          )
+          ? response.data
+
+          : Array.isArray(
+              response?.items
+            )
+            ? response.items
+
+            : Array.isArray(
+                response?.results
+              )
+              ? response.results
+
+              : [];
+
+
+    serviceProviders =
+      providers;
+
+
+    select.innerHTML =
+      `
+        <option value="">
+          Unassigned
+        </option>
+      `;
+
+
+    providers
+      .forEach(
+        provider => {
+
+          const id =
+            provider.id ||
+            provider._id;
+
+
+          const name =
+            provider.name ||
+            id;
+
+
+          if (
+            !id
+          ) {
+
+            return;
+
+          }
+
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+
+          option.value =
+            id;
+
+
+          option.textContent =
+            name;
+
+
+          select.appendChild(
+            option
+          );
+
+        }
+      );
+
+
+    /*
+     * If the case has already loaded,
+     * restore its provider.
+     */
+
+    if (
+      currentCase
+    ) {
+
+      select.value =
+        currentCase.service_provider_id ||
+        "";
+
+    }
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Service provider load error:",
+      error
+    );
+
+
+    /*
+     * Provider list failure should not
+     * prevent the case from loading.
+     */
+
+    select.innerHTML =
+      `
+        <option value="">
+          Unassigned
+        </option>
+      `;
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Update status
+|--------------------------------------------------------------------------
+*/
+
+async function updateStatus() {
+
+  if (
+    isSaving
+  ) {
+
+    return;
+
+  }
+
+
+  clearInlineErrors();
+
+
+  if (
+    !currentCase
+  ) {
+
+    showInlineError(
+      "statusError",
+      "Case data is not loaded."
+    );
+
+
+    return;
+
+  }
+
+
+  const currentStatus =
+    currentCase.status;
+
+
+  const selectedStatus =
+    document
+      .getElementById(
+        "statusSelect"
+      )
+      .value;
+
+
+  /*
+   * Same status is not an update.
+   */
+
+  if (
+    selectedStatus ===
+    currentStatus
+  ) {
+
+    toast(
+      "The case is already " +
+      formatStatus(
+        currentStatus
+      ) +
+      "."
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * Frontend guard.
+   */
+
+  const allowed =
+    getAllowedNextStatuses(
+      currentStatus
+    );
+
+
+  if (
+    !allowed.includes(
+      selectedStatus
+    )
+  ) {
+
+    showInlineError(
+      "statusError",
+      "This status transition is not allowed."
+    );
+
+
+    renderStatusState(
+      currentCase
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * Closing requires resolution.
+   *
+   * We include the resolution in the
+   * SAME PATCH request so the backend
+   * can validate it atomically.
+   */
+
+  const body = {
+
+    status:
+      selectedStatus
+
+  };
+
+
+  if (
+    selectedStatus ===
+    "closed"
+  ) {
+
+    const resolution =
+      document
+        .getElementById(
+          "resolutionSelect"
+        )
+        .value;
+
+
+    if (
+      !resolution
+    ) {
+
+      showInlineError(
+        "statusError",
+        "Select a resolution before closing the case."
+      );
+
+
+      return;
+
+    }
+
+
+    body.resolution =
+      resolution;
+
+  }
+
+
+  const button =
+    document.getElementById(
+      "updateStatusBtn"
+    );
+
+
+  isSaving =
+    true;
+
+
+  button.disabled =
+    true;
+
+
+  try {
+
+    await authFetch(
+      "/v1/console/service-cases/" +
+      encodeURIComponent(
+        caseId
+      ),
+      {
+        method: "PATCH",
+        body
+      }
+    );
+
+
+    toast(
+      "Case moved to " +
+      formatStatus(
+        selectedStatus
+      ) +
+      "."
+    );
+
+
+    await loadCase();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Status update error:",
+      error
+    );
+
+
+    showInlineError(
+      "statusError",
+      getErrorMessage(
+        error,
+        "Could not update the case status."
+      )
+    );
+
+
+    /*
+     * Re-read server state after a failure.
+     */
+
+    await loadCase();
+
+
+  } finally {
+
+    isSaving =
+      false;
+
+
+    /*
+     * loadCase() may have recreated
+     * the status controls, so locate
+     * the button again.
+     */
+
+    const currentButton =
+      document.getElementById(
+        "updateStatusBtn"
+      );
+
+
+    if (
+      currentButton
+    ) {
+
+      currentButton.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Save routing
+|--------------------------------------------------------------------------
+*/
+
+async function saveRouting() {
+
+  if (
+    isSaving
+  ) {
+
+    return;
+
+  }
+
+
+  clearInlineErrors();
+
+
+  const providerId =
+    document
+      .getElementById(
+        "providerSelect"
+      )
+      .value;
+
+
+  const technicianName =
+    document
+      .getElementById(
+        "technicianName"
+      )
+      .value
+      .trim();
+
+
+  const scheduledValue =
+    document
+      .getElementById(
+        "scheduledAt"
+      )
+      .value;
+
+
+  const body = {
+
+    service_provider_id:
+      providerId ||
+      null,
+
+    technician_name:
+      technicianName ||
+      null,
+
+    scheduled_at:
+      scheduledValue
+        ? new Date(
+            scheduledValue
+          ).toISOString()
+        : null
+
+  };
+
+
+  const button =
+    document.getElementById(
+      "saveRoutingBtn"
+    );
+
+
+  isSaving =
+    true;
+
+
+  button.disabled =
+    true;
+
+
+  try {
+
+    await authFetch(
+      "/v1/console/service-cases/" +
+      encodeURIComponent(
+        caseId
+      ),
+      {
+        method: "PATCH",
+        body
+      }
+    );
+
+
+    toast(
+      "Routing and appointment saved."
+    );
+
+
+    await loadCase();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Routing update error:",
+      error
+    );
+
+
+    showInlineError(
+      "routingError",
+      getErrorMessage(
+        error,
+        "Could not save routing."
+      )
+    );
+
+
+    await loadCase();
+
+
+  } finally {
+
+    isSaving =
+      false;
+
+
+    const currentButton =
+      document.getElementById(
+        "saveRoutingBtn"
+      );
+
+
+    if (
+      currentButton
+    ) {
+
+      currentButton.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Save outcome
+|--------------------------------------------------------------------------
+*/
+
+async function saveOutcome(
+  closeCase = false
+) {
+
+  if (
+    isSaving
+  ) {
+
+    return;
+
+  }
+
+
+  clearInlineErrors();
+
+
+  const resolution =
+    document
+      .getElementById(
+        "resolutionSelect"
+      )
+      .value;
+
+
+  const costValue =
+    document
+      .getElementById(
+        "cost"
+      )
+      .value;
+
+
+  const chargedValue =
+    document
+      .getElementById(
+        "chargedToCustomer"
+      )
+      .value;
+
+
+  /*
+   * Closing requires resolution.
+   */
+
+  if (
+    closeCase &&
+    !resolution
+  ) {
+
+    showInlineError(
+      "outcomeError",
+      "Select a resolution before closing the case."
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * If we are closing, the current
+   * state must actually allow closing.
+   */
+
+  if (
+    closeCase
+  ) {
+
+    const allowed =
+      getAllowedNextStatuses(
+        currentCase?.status
+      );
+
+
+    if (
+      !allowed.includes(
+        "closed"
+      )
+    ) {
+
+      showInlineError(
+        "outcomeError",
+        "This case cannot be closed from its current status."
+      );
+
+
+      return;
+
+    }
+
+  }
+
+
+  let cost;
+
+  let chargedToCustomer;
+
+
+  try {
+
+    cost =
+      parseMoneyToAgorot(
+        costValue
+      );
+
+
+    chargedToCustomer =
+      parseMoneyToAgorot(
+        chargedValue
+      );
+
+
+  } catch (
+    error
+  ) {
+
+    showInlineError(
+      "outcomeError",
+      error.message
+    );
+
+
+    return;
+
+  }
+
+
+  const body = {};
+
+
+  if (
+    resolution
+  ) {
+
+    body.resolution =
+      resolution;
+
+  }
+
+
+  if (
+    cost !== undefined
+  ) {
+
+    body.cost =
+      cost;
+
+  }
+
+
+  if (
+    chargedToCustomer !==
+    undefined
+  ) {
+
+    body.charged_to_customer =
+      chargedToCustomer;
+
+  }
+
+
+  /*
+   * Closing is sent together with
+   * resolution in one PATCH.
+   */
+
+  if (
+    closeCase
+  ) {
+
+    body.status =
+      "closed";
+
+  }
+
+
+  if (
+    !Object.keys(
+      body
+    ).length
+  ) {
+
+    showInlineError(
+      "outcomeError",
+      "There is nothing to save."
+    );
+
+
+    return;
+
+  }
+
+
+  const button =
+    document.getElementById(
+      closeCase
+        ? "saveOutcomeCloseBtn"
+        : "saveOutcomeBtn"
+    );
+
+
+  isSaving =
+    true;
+
+
+  button.disabled =
+    true;
+
+
+  try {
+
+    await authFetch(
+      "/v1/console/service-cases/" +
+      encodeURIComponent(
+        caseId
+      ),
+      {
+        method: "PATCH",
+        body
+      }
+    );
+
+
+    toast(
+      closeCase
+        ? "Case closed."
+        : "Outcome saved."
+    );
+
+
+    await loadCase();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Outcome update error:",
+      error
+    );
+
+
+    showInlineError(
+      "outcomeError",
+      getErrorMessage(
+        error,
+        "Could not save the outcome."
+      )
+    );
+
+
+    await loadCase();
+
+
+  } finally {
+
+    isSaving =
+      false;
+
+
+    const currentButton =
+      document.getElementById(
+        closeCase
+          ? "saveOutcomeCloseBtn"
+          : "saveOutcomeBtn"
+      );
+
+
+    if (
+      currentButton
+    ) {
+
+      currentButton.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Add internal note
+|--------------------------------------------------------------------------
+*/
+
+async function addInternalNote() {
+
+  if (
+    isSaving
+  ) {
+
+    return;
+
+  }
+
+
+  const input =
+    document.getElementById(
+      "noteInput"
+    );
+
+
+  const note =
+    input.value.trim();
+
+
+  if (
+    !note
+  ) {
+
+    toast(
+      "Enter a note first.",
+      "err"
+    );
+
+
+    return;
+
+  }
+
+
+  const button =
+    document.getElementById(
+      "addNoteBtn"
+    );
+
+
+  isSaving =
+    true;
+
+
+  button.disabled =
+    true;
+
+
+  try {
+
+    await authFetch(
+      "/v1/console/service-cases/" +
+      encodeURIComponent(
+        caseId
+      ) +
+      "/notes",
+      {
         method: "POST",
-        body: { note }
-      });
-      noteInput.value = "";
-      toast("Note added.");
-      loadCase();
-    } catch (error) {
-      toast(error.message || "Could not add the note.", "err");
-    }
-  });
 
-  loadCase();
+        body: {
+          note
+        }
+      }
+    );
+
+
+    input.value =
+      "";
+
+
+    toast(
+      "Note added."
+    );
+
+
+    await loadCase();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Internal note error:",
+      error
+    );
+
+
+    toast(
+      getErrorMessage(
+        error,
+        "Could not add the note."
+      ),
+      "err"
+    );
+
+
+  } finally {
+
+    isSaving =
+      false;
+
+
+    const currentButton =
+      document.getElementById(
+        "addNoteBtn"
+      );
+
+
+    if (
+      currentButton
+    ) {
+
+      currentButton.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Event listeners
+|--------------------------------------------------------------------------
+*/
+
+document
+  .getElementById(
+    "updateStatusBtn"
+  )
+  .addEventListener(
+    "click",
+    updateStatus
+  );
+
+
+document
+  .getElementById(
+    "saveRoutingBtn"
+  )
+  .addEventListener(
+    "click",
+    saveRouting
+  );
+
+
+document
+  .getElementById(
+    "saveOutcomeBtn"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      saveOutcome(
+        false
+      )
+  );
+
+
+document
+  .getElementById(
+    "saveOutcomeCloseBtn"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      saveOutcome(
+        true
+      )
+  );
+
+
+document
+  .getElementById(
+    "addNoteBtn"
+  )
+  .addEventListener(
+    "click",
+    addInternalNote
+  );
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Initialization
+|--------------------------------------------------------------------------
+*/
+
+async function initializePage() {
+
+  if (
+    !caseId
+  ) {
+
+    showBanner(
+      "caseError",
+      "No case ID was provided. Go back to the queue and open a case."
+    );
+
+
+    return;
+
+  }
+
+
+  await Promise.allSettled([
+
+    loadServiceProviders(),
+
+    loadCase()
+
+  ]);
+
+}
+
+
+initializePage();
 
 </script>
 
+
 </body>
+
 </html>

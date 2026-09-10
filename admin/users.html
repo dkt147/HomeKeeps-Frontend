@@ -1,60 +1,59 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Users &amp; permissions - HomeKeep</title>
-  <link rel="stylesheet" href="../shared/css/admin.css">
-</head>
-<body data-area="admin">
-<div class="app">
-  <aside id="sidebar"></aside>
-  <main class="content">
-    <div class="topbar"><span>HomeKeep Admin</span></div>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Users & permissions - HomeKeep</title><link rel="stylesheet" href="../shared/css/admin.css"></head>
+<body data-area="admin"><div class="app"><aside id="sidebar"></aside><main class="content">
+<div id="pageError" class="api-error-banner" role="alert"></div>
+<div class="page-head"><div><div class="eyebrow">System · users · system_admin</div><h2>Users & permissions</h2><p class="muted">Create and manage staff accounts. MFA is completed through the staff authentication flow.</p></div><button class="btn accent" id="newBtn">+ Add user</button></div>
+<div class="card" id="formPanel" style="display:none;padding:22px;margin-bottom:20px"><div class="section-title" id="formTitle">New user</div>
+<div class="form-row"><label>Name<input id="name"></label><label>Email<input id="email" type="email"></label></div>
+<label>Role<select id="role"><option>advisor</option><option>supervisor</option><option>ops_admin</option><option>business_admin</option><option>system_admin</option></select></label>
+<label id="passwordLabel">Temporary password<input id="password" type="password" minlength="8" placeholder="At least 8 characters"></label>
+<div style="display:flex;gap:10px"><button class="btn primary" id="saveBtn">Save</button><button class="btn ghost" id="cancelBtn">Cancel</button></div></div>
+<div class="table-card"><div class="table-toolbar"><div class="muted mini" id="count"></div></div><table class="data-table"><thead><tr><th>User</th><th>Role</th><th>Active</th><th>MFA</th><th>Last login</th><th></th></tr></thead><tbody id="rows"></tbody></table><div id="empty" class="empty-state" style="display:none"><h3>No staff users</h3></div></div>
 
-    <div class="page-head">
-      <div>
-        <div class="eyebrow">System &middot; users &middot; system_admin only</div>
-        <h2>Users &amp; permissions</h2>
-        <p class="muted">One role per user. Every API request is authorised server-side &mdash; this screen changes who <em>can</em> ask, never what the server checks.</p>
-      </div>
-      <button class="btn accent" disabled title="Needs an API">+ Invite a user</button>
-    </div>
-
-    <div class="table-card" style="margin-bottom:20px">
-      <div class="table-toolbar"><div class="section-title" style="margin:0">Preview layout &mdash; static, no API wired yet</div></div>
-      <table class="data-table">
-        <thead><tr><th>User</th><th>Role</th><th>Active</th><th>Last seen</th><th>MFA</th></tr></thead>
-        <tbody>
-          <tr><td class="cell-primary">Yael Barak</td><td><span class="badge b-accent">advisor</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">2 min ago</td><td><span class="badge b-success">on</span></td></tr>
-          <tr><td class="cell-primary">Noa Shani</td><td><span class="badge b-accent">supervisor</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">14 min ago</td><td><span class="badge b-success">on</span></td></tr>
-          <tr><td class="cell-primary">Rami Sror</td><td><span class="badge b-accent">ops_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">1 h ago</td><td><span class="badge b-success">on</span></td></tr>
-          <tr><td class="cell-primary">Gil Amrani</td><td><span class="badge b-accent">business_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">3 h ago</td><td><span class="badge b-success">on</span></td></tr>
-          <tr><td class="cell-primary">Ilan Katz</td><td><span class="badge b-accent">system_admin</span></td><td><span class="badge b-success">active</span></td><td class="cell-sub">now</td><td><span class="badge b-success">on</span></td></tr>
-          <tr><td class="cell-primary">Itai Regev</td><td><span class="badge b-accent">advisor</span></td><td><span class="badge b-warning">invited &mdash; not accepted</span></td><td class="cell-sub">&mdash;</td><td><span class="badge b-muted">pending</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card" style="padding:22px;border-left:3px solid var(--accent)">
-      <div class="section-title">Needs an API</div>
-      <p style="font-size:13.5px;line-height:1.6;color:var(--text-2)">
-        The data schema (&sect;5.6) defines a <code>users</code> table &mdash;
-        <code>name, email, role, is_active, last_login_at, mfa_enabled</code> &mdash; and the
-        permission matrix (&sect;3) makes <code>system_admin</code> the only role that should reach
-        this screen. But &sect;7.4 (API Contract &mdash; Admin) doesn't list a CRUD endpoint for it,
-        only <code>GET /v1/admin/audit-log</code>. Give me something like
-        <code>CRUD /v1/admin/users</code> (plus an invite/resend-invite action) and this wires up
-        exactly like <a href="manufacturers.html" class="btn link">Manufacturers</a> &mdash; note in
-        the spec: <em>"Changing a role takes effect on the user's next request, not their next
-        login"</em>, so the update endpoint needs to invalidate any cached authorisation immediately.
-      </p>
-    </div>
-
-  </main>
+<div class="card" style="padding:22px;margin-top:20px">
+  <div class="section-title">Role permissions</div>
+  <p class="muted mini">System administrators can replace the effective permissions assigned to a role. Changes apply to the next API request.</p>
+  <div class="form-row">
+    <label>Role<select id="permRole"><option>advisor</option><option>supervisor</option><option>ops_admin</option><option>business_admin</option><option>system_admin</option></select></label>
+    <label style="align-self:end"><button class="btn primary" id="loadPerms">Load permissions</button></label>
+  </div>
+  <div id="permGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px"></div>
+  <button class="btn accent" id="savePerms" style="margin-top:16px">Save role permissions</button>
 </div>
-<script src="../shared/js/config.js"></script>
-<script src="../shared/js/api.js"></script>
-<script>renderSidebar("users");</script>
-</body>
-</html>
+</main></div>
+<script src="../shared/js/config.js"></script><script src="../shared/js/api.js"></script><script>
+renderSidebar("users");let items=[],editingId=null;const $=id=>document.getElementById(id);
+function reset(){editingId=null;$("formPanel").style.display="none";["name","email","password"].forEach(id=>$(id).value="");$("passwordLabel").style.display="block";}
+function openForm(u=null){editingId=u?u.id||u._id:null;$("formTitle").textContent=u?"Edit user":"New user";$("name").value=u?.name||"";$("email").value=u?.email||"";$("role").value=u?.role||"advisor";$("password").value="";$("passwordLabel").style.display=u?"none":"block";$("formPanel").style.display="block";}
+async function load(){hideBanner("pageError");try{const d=await authFetch("/v1/admin/users?page=1&per_page=100",{method:"GET"});items=Array.isArray(d)?d:(d.items||d.data||[]);$("count").textContent=items.length+" users";$("empty").style.display=items.length?"none":"block";$("rows").innerHTML=items.map(u=>`<tr><td><div class="cell-primary">${escapeHtml(u.name||"—")}</div><div class="cell-sub">${escapeHtml(u.email||"")}</div></td><td><span class="badge b-accent">${escapeHtml(u.role||"—")}</span></td><td><span class="badge ${u.is_active?'b-success':'b-muted'}">${u.is_active?'active':'inactive'}</span></td><td><span class="badge ${u.mfa_enabled?'b-success':'b-warning'}">${u.mfa_enabled?'enabled':'pending'}</span></td><td class="cell-sub">${u.last_login_at?fmtDateTime(u.last_login_at):"—"}</td><td><button class="btn ghost small" data-edit="${escapeHtml(u.id||u._id)}">Edit</button>${u.is_active?`<button class="btn ghost small" data-disable="${escapeHtml(u.id||u._id)}" style="color:var(--danger)">Deactivate</button>`:`<button class="btn ghost small" data-enable="${escapeHtml(u.id||u._id)}">Activate</button>`}</td></tr>`).join("");document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openForm(items.find(x=>String(x.id||x._id)===String(b.dataset.edit))));document.querySelectorAll("[data-disable],[data-enable]").forEach(b=>b.onclick=async()=>{try{await authFetch("/v1/admin/users/"+encodeURIComponent(b.dataset.disable||b.dataset.enable)+"/status",{method:"PATCH",body:{is_active:!!b.dataset.enable}});toast("User status updated.");load()}catch(e){toast(e.message,"err")}})}catch(e){showBanner("pageError",e.message||"Unable to load users.")}}
+$("newBtn").onclick=()=>openForm();$("cancelBtn").onclick=reset;$("saveBtn").onclick=async()=>{const payload={name:$("name").value.trim(),email:$("email").value.trim(),role:$("role").value};if(!payload.name||!payload.email){toast("Name and email are required.","err");return}if(!editingId){payload.password=$("password").value;if(payload.password.length<8){toast("Password must be at least 8 characters.","err");return}}const b=$("saveBtn");b.disabled=true;try{await authFetch("/v1/admin/users"+(editingId?"/"+encodeURIComponent(editingId):""),{method:editingId?"PATCH":"POST",body:payload});toast(editingId?"User updated.":"User created.");reset();load()}catch(e){toast(e.message||"Could not save user.","err")}finally{b.disabled=false}};
+
+async function loadPermissions(){
+  const role=$("permRole").value;
+  $("savePerms").disabled = role === "system_admin";
+  $("permGrid").innerHTML="<div class='muted'>Loading permissions…</div>";
+  try{
+    const [catalog,assigned]=await Promise.all([
+      authFetch("/v1/admin/permissions",{method:"GET"}),
+      authFetch("/v1/admin/permissions/roles/"+encodeURIComponent(role),{method:"GET"})
+    ]);
+    const list=Array.isArray(catalog)?catalog:(catalog.data||catalog.items||[]);
+    const current=Array.isArray(assigned)?assigned:(assigned.permissions||assigned.data||[]);
+    const keys=new Set(current.map(x=>typeof x==="string"?x:(x.key||`${x.resource}:${x.action}`)));
+    $("permGrid").innerHTML=list.map(p=>{
+      const key=p.key||`${p.resource}:${p.action}`;
+      return `<label style="display:flex;gap:8px;align-items:center;padding:10px;border:1px solid var(--border-soft);border-radius:8px;font-size:12px"><input class="permCheck" type="checkbox" value="${escapeHtml(key)}" ${keys.has(key)?"checked":""} style="width:auto">${escapeHtml(key)}</label>`;
+    }).join("")||"<div class='muted'>No permissions returned.</div>";
+  }catch(e){$("permGrid").innerHTML="";showBanner("pageError",e.message||"Unable to load permissions.")}
+}
+$("loadPerms").onclick=loadPermissions;
+$("savePerms").onclick=async()=>{
+  const role=$("permRole").value;
+  const permissions=[...document.querySelectorAll(".permCheck:checked")].map(x=>x.value);
+  const b=$("savePerms");b.disabled=true;
+  try{await authFetch("/v1/admin/permissions/roles/"+encodeURIComponent(role),{method:"PUT",body:{permissions}});toast("Role permissions saved.");}
+  catch(e){toast(e.message||"Could not save permissions.","err")}
+  finally{b.disabled=false}
+};
+load();loadPermissions();
+</script></body></html>
