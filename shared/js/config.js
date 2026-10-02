@@ -1,24 +1,23 @@
-/*
- * HomeKeep frontend runtime configuration.
- *
- * VITE_API_BASE_URL comes from .env / deployment environment through
- * vite.config.js. Never put provider secrets in the frontend.
- */
-
 const DEFAULT_API_BASE_URL = "http://localhost:5000";
 
+const HOMEKEEP_API_BASE_URL =
+  window.__HOMEKEEP_API_BASE_URL__ || DEFAULT_API_BASE_URL;
+
 window.HOMEKEEP_CONFIG = {
-  apiBaseUrl:
-    typeof __HOMEKEEP_API_BASE_URL__ !== "undefined"
-      ? __HOMEKEEP_API_BASE_URL__
-      : DEFAULT_API_BASE_URL
+  apiBaseUrl: HOMEKEEP_API_BASE_URL.replace(/\/+$/, ""),
 };
+
+console.log(
+  "HOMEKEEP_CONFIG:",
+  window.HOMEKEEP_CONFIG
+);
 
 window.getHomeKeepRole = function () {
   try {
     const user = JSON.parse(
       localStorage.getItem("homekeep_staff_user") || "null"
     );
+
     return String((user && user.role) || "").toLowerCase();
   } catch (_) {
     return "";
@@ -27,7 +26,10 @@ window.getHomeKeepRole = function () {
 
 window.getHomeKeepRootPath = function () {
   const pathname = window.location.pathname || "/";
-  const match = pathname.match(/\/(?:auth|admin|console)(?:\/|$)/);
+
+  const match = pathname.match(
+    /\/(?:auth|admin|console)(?:\/|$)/
+  );
 
   if (match) {
     return pathname.slice(0, match.index + 1);
@@ -50,7 +52,10 @@ window.getHomeKeepLandingPath = function () {
     return root + "console/service-cases.html";
   }
 
-  if (["ops_admin", "business_admin"].includes(role)) {
+  if (
+    role === "ops_admin" ||
+    role === "business_admin"
+  ) {
     return root + "admin/dashboard.html";
   }
 

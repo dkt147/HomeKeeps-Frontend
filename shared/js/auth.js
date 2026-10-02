@@ -1,8 +1,9 @@
-/* HomeKeep staff authentication helpers. Load config.js before this file. */
-
 const HOMEKEEP_AUTH_API_BASE_URL =
   (window.HOMEKEEP_CONFIG && window.HOMEKEEP_CONFIG.apiBaseUrl) ||
   "http://localhost:5000";
+  
+  console.log("HOMEKEEP_AUTH_API_BASE_URL:", HOMEKEEP_AUTH_API_BASE_URL);
+  console.log("window.HOMEKEEP_CONFIG:", window.HOMEKEEP_CONFIG);
 
 const HOMEKEEP_ACCESS_TOKEN_KEY = "homekeep_auth_token";
 const HOMEKEEP_REFRESH_TOKEN_KEY = "homekeep_refresh_token";

@@ -12,8 +12,11 @@
  */
 
 const API_BASE_URL =
-  (window.HOMEKEEP_CONFIG && window.HOMEKEEP_CONFIG.apiBaseUrl) ||
+  (window.HOMEKEEP_CONFIG &&
+    window.HOMEKEEP_CONFIG.apiBaseUrl) ||
   "http://localhost:5000";
+
+console.log("API_BASE_URL:", API_BASE_URL);
 
 const ACCESS_TOKEN_KEY = "homekeep_auth_token";
 const REFRESH_TOKEN_KEY = "homekeep_refresh_token";
