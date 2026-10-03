@@ -75,15 +75,27 @@ function readFormValue(field) {
   return el.value;
 }
 
-function renderCrudPage(config) {
+async function renderCrudPage(config) {
   renderSidebar(config.navKey);
+  try {
+    await loadStaffContext();
+  } catch (error) {
+    showBanner("pageError", error.message || "Unable to load permissions.");
+    return;
+  }
 
+  const canCreate = !config.createPermission || hasPermission(config.createPermission);
+  const canUpdate = !config.updatePermission || hasPermission(config.updatePermission);
+  const canDelete = config.deletePermission ? hasPermission(config.deletePermission) : config.deletable !== false;
+  const canToggle = config.toggleField && canUpdate;
   const state = { items: [], editingId: null };
 
   document.getElementById("pageEyebrow").textContent = config.eyebrow;
   document.getElementById("pageTitle").textContent = config.title;
   document.getElementById("pageSubtitle").textContent = config.subtitle || "";
-  document.getElementById("newBtn").textContent = config.createLabel || ("+ New " + config.title.toLowerCase());
+  const newButton = document.getElementById("newBtn");
+  newButton.textContent = config.createLabel || ("+ New " + config.title.toLowerCase());
+  newButton.style.display = canCreate ? "" : "none";
 
   const theadRow = document.getElementById("theadRow");
   theadRow.innerHTML = config.columns.map(c => `<th>${escapeHtml(c.label)}</th>`).join("") + "<th></th>";
@@ -120,9 +132,11 @@ function renderCrudPage(config) {
 
     try {
       if (state.editingId) {
+        if (!canUpdate) { throw new Error("You do not have permission to update this resource."); }
         await authFetch(config.listPath + "/" + encodeURIComponent(state.editingId), { method: "PATCH", body: payload });
         toast(config.title + " updated.");
       } else {
+        if (!canCreate) { throw new Error("You do not have permission to create this resource."); }
         await authFetch(config.listPath, { method: "POST", body: payload });
         toast(config.title + " created.");
       }
@@ -148,7 +162,7 @@ function renderCrudPage(config) {
     const id = getItemId(item, config.idField);
     const cells = config.columns.map(c => `<td>${c.render(item)}</td>`).join("");
     let toggleCell = "";
-    if (config.toggleField) {
+    if (config.toggleField && canToggle) {
       const on = item[config.toggleField] !== false;
       toggleCell = `<button class="badge ${on ? "b-success" : "b-muted"}" data-toggle="${escapeHtml(id)}" style="border:none;cursor:pointer">${on ? "active" : "inactive"}</button>`;
     }
@@ -157,8 +171,8 @@ function renderCrudPage(config) {
         ${cells}
         <td style="display:flex;gap:6px;align-items:center">
           ${toggleCell}
-          <button class="btn ghost small" data-edit="${escapeHtml(id)}">Edit</button>
-          ${config.deletable !== false ? `<button class="btn ghost small" data-del="${escapeHtml(id)}" style="color:var(--danger)">Delete</button>` : ""}
+          ${canUpdate ? `<button class="btn ghost small" data-edit="${escapeHtml(id)}">Edit</button>` : ""}
+          ${canDelete ? `<button class="btn ghost small" data-del="${escapeHtml(id)}" style="color:var(--danger)">Delete</button>` : ""}
         </td>
       </tr>`;
   }

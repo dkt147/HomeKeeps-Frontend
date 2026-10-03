@@ -51,6 +51,9 @@ renderCrudPage({
   title: "Eligibility rules",
   subtitle: "What may be offered, to which product, and when. Evaluated top to bottom; the first blocking rule wins and its reason is shown to both the advisor and the app.",
   listPath: "/v1/admin/eligibility-rules",
+  createPermission: "eligibility_rules:create",
+  updatePermission: "eligibility_rules:update",
+  deletePermission: "eligibility_rules:delete",
   createLabel: "+ New rule",
   toggleField: "is_active",
   columns: [

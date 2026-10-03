@@ -52,6 +52,9 @@ renderCrudPage({
   title: "Service providers",
   subtitle: "sla_hours here is what computes sla_due_at at routing time \u2014 changing it affects cases routed from now on, never cases already routed.",
   listPath: "/v1/admin/service-providers",
+  createPermission: "service_providers:create",
+  updatePermission: "service_providers:update",
+  deletePermission: "service_providers:delete",
   createLabel: "+ New provider",
   toggleField: "active",
   columns: [

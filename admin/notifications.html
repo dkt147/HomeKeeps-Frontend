@@ -52,6 +52,9 @@ renderCrudPage({
   title: "WhatsApp templates",
   subtitle: "Service and marketing may never mix. A service template may only manage a product the customer already owns; anything with a commercial offer is marketing and requires consent_marketing = true \u2014 enforced server-side.",
   listPath: "/v1/admin/whatsapp-templates",
+  createPermission: "whatsapp_templates:create",
+  updatePermission: "whatsapp_templates:update",
+  deletable: false,
   createLabel: "+ New template",
   columns: [
     { label: "Name", render: t => `<span class="cell-primary">${escapeHtml(fieldFirst(t,["name"],"\u2014"))}</span>` },

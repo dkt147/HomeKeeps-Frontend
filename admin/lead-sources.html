@@ -52,6 +52,9 @@ renderCrudPage({
   title: "Lead sources & pricing",
   subtitle: "What we owe each supplier, and when a lead counts as billable.",
   listPath: "/v1/admin/lead-sources",
+  createPermission: "lead_sources:create",
+  updatePermission: "lead_sources:update",
+  deletePermission: "lead_sources:delete",
   createLabel: "+ New source",
   columns: [
     { label: "Name", render: s => `<span class="cell-primary">${escapeHtml(fieldFirst(s,["name"],"\u2014"))}</span>` },

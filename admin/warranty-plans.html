@@ -52,6 +52,9 @@ renderCrudPage({
   title: "Plans & pricing",
   subtitle: "Editing a plan changes future sales only \u2014 every warranty already sold keeps the plan_snapshot taken when it went active. This can never alter an existing policy.",
   listPath: "/v1/admin/warranty-plans",
+  createPermission: "warranty_plans:create",
+  updatePermission: "warranty_plans:update",
+  deletePermission: "warranty_plans:delete",
   createLabel: "+ New plan",
   toggleField: "is_active",
   columns: [

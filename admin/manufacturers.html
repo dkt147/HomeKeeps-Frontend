@@ -52,6 +52,9 @@ renderCrudPage({
   title: "Manufacturers",
   subtitle: "Who a case is referred to when a product is still under maker's warranty.",
   listPath: "/v1/admin/manufacturers",
+  createPermission: "manufacturers:create",
+  updatePermission: "manufacturers:update",
+  deletePermission: "manufacturers:delete",
   createLabel: "+ New manufacturer",
   columns: [
     { label: "Name", render: m => `<span class="cell-primary">${escapeHtml(fieldFirst(m,["name"],"\u2014"))}</span>` },

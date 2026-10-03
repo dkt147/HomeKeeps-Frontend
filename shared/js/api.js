@@ -71,6 +71,7 @@ function clearSession() {
   sessionStorage.removeItem(MFA_CHALLENGE_KEY);
   sessionStorage.removeItem(MFA_EXPIRES_KEY);
   sessionStorage.removeItem(MFA_SETUP_KEY);
+  clearStaffContext();
 }
 
 function clearAccessToken() {
@@ -98,22 +99,19 @@ function getLoginPath() {
 }
 
 function getLandingPath() {
-  if (typeof window.getHomeKeepLandingPath === "function") {
-    return window.getHomeKeepLandingPath();
-  }
-
   const role = getStaffRole();
   const root = resolveHomeKeepRootPath();
+  const permissions = getStaffPermissions();
 
-  if (role === "advisor" || role === "supervisor") {
+  if ((role === "advisor" || role === "supervisor") && permissions.has("service_cases:read")) {
     return root + "console/service-cases.html";
   }
 
-  if (["ops_admin", "business_admin"].includes(role)) {
+  if (["ops_admin", "business_admin"].includes(role) && permissions.has("reports:read")) {
     return root + "admin/dashboard.html";
   }
 
-  if (role === "system_admin") {
+  if (role === "system_admin" && permissions.has("users:read")) {
     return root + "admin/users.html";
   }
 
@@ -368,21 +366,24 @@ function handleApiError(error, fallback = "Something went wrong.") {
   return error.message || fallback;
 }
 
+const STAFF_CONTEXT_KEY = "homekeep_staff_context";
+let staffContextPromise = null;
+
 const CONSOLE_NAV = [
   {
     label: "Operations",
     items: [
-      { key: "service-cases", href: "service-cases.html", icon: "&#9776;", label: "Case queue", roles: ["advisor", "supervisor"] },
-      { key: "customers", href: "customers.html", icon: "&#9906;", label: "Find a customer", roles: ["advisor", "supervisor"] },
-      { key: "products", href: "products.html", icon: "&#9635;", label: "Products", roles: ["advisor", "supervisor"] },
-      { key: "opportunities", href: "opportunities.html", icon: "&#9733;", label: "Opportunities", roles: ["advisor", "supervisor"] },
+      { key: "service-cases", href: "service-cases.html", icon: "&#9776;", label: "Case queue", permission: "service_cases:read" },
+      { key: "customers", href: "customers.html", icon: "&#9906;", label: "Find a customer", permission: "customers:read" },
+      { key: "products", href: "products.html", icon: "&#9635;", label: "Products", permission: "products:read" },
+      { key: "opportunities", href: "opportunities.html", icon: "&#9733;", label: "Opportunities", permission: "customers:read" },
       { key: "supervisor", href: "supervisor.html", icon: "&#9873;", label: "Team &amp; SLA", roles: ["supervisor"] }
     ]
   },
   {
     label: "Account",
     items: [
-      { key: "settings", href: "settings.html", icon: "&#9881;", label: "Settings", roles: ["advisor", "supervisor"] }
+      { key: "settings", href: "settings.html", icon: "&#9881;", label: "Settings" }
     ]
   }
 ];
@@ -391,50 +392,102 @@ const ADMIN_NAV = [
   {
     label: "Operations",
     items: [
-      { key: "dashboard", href: "dashboard.html", icon: "&#9673;", label: "Dashboard", roles: ["ops_admin", "business_admin"] },
-      { key: "service-cases", href: "../console/service-cases.html", icon: "&#9776;", label: "Service cases", roles: ["ops_admin", "business_admin"] },
-      { key: "customers", href: "../console/customers.html", icon: "&#9906;", label: "Customers", roles: ["ops_admin", "business_admin"] },
-      { key: "products", href: "../console/products.html", icon: "&#9635;", label: "Products", roles: ["ops_admin", "business_admin"] },
-      { key: "opportunities", href: "../console/opportunities.html", icon: "&#9733;", label: "Opportunities", roles: ["ops_admin", "business_admin"] },
-      { key: "reports", href: "reports.html", icon: "&#128202;", label: "Reports", roles: ["ops_admin", "business_admin"] }
+      { key: "dashboard", href: "dashboard.html", icon: "&#9673;", label: "Dashboard", permission: "reports:read" },
+      { key: "service-cases", href: "../console/service-cases.html", icon: "&#9776;", label: "Service cases", permission: "service_cases:read" },
+      { key: "customers", href: "../console/customers.html", icon: "&#9906;", label: "Customers", permission: "customers:read" },
+      { key: "products", href: "../console/products.html", icon: "&#9635;", label: "Products", permission: "products:read" },
+      { key: "opportunities", href: "../console/opportunities.html", icon: "&#9733;", label: "Opportunities", permission: "customers:read" },
+      { key: "reports", href: "reports.html", icon: "&#128202;", label: "Reports", permission: "reports:read" }
     ]
   },
   {
     label: "Configuration",
     items: [
-      { key: "warranty-plans", href: "warranty-plans.html", icon: "&#128196;", label: "Plans &amp; pricing", roles: ["business_admin"] },
-      { key: "eligibility-rules", href: "eligibility-rules.html", icon: "&#9989;", label: "Eligibility rules", roles: ["business_admin"] },
-      { key: "product-categories", href: "product-categories.html", icon: "&#9638;", label: "Categories", roles: ["ops_admin"] },
-      { key: "manufacturers", href: "manufacturers.html", icon: "&#127970;", label: "Manufacturers", roles: ["ops_admin", "business_admin"] },
-      { key: "service-providers", href: "service-providers.html", icon: "&#128295;", label: "Service providers", roles: ["ops_admin", "business_admin"] },
-      { key: "stores", href: "stores.html", icon: "&#127978;", label: "Stores", roles: ["ops_admin", "business_admin"] }
+      { key: "warranty-plans", href: "warranty-plans.html", icon: "&#128196;", label: "Plans &amp; pricing", permission: "warranty_plans:read" },
+      { key: "eligibility-rules", href: "eligibility-rules.html", icon: "&#9989;", label: "Eligibility rules", permission: "eligibility_rules:read" },
+      { key: "product-categories", href: "product-categories.html", icon: "&#9638;", label: "Categories", permission: "product_categories:read" },
+      { key: "manufacturers", href: "manufacturers.html", icon: "&#127970;", label: "Manufacturers", permission: "manufacturers:read" },
+      { key: "service-providers", href: "service-providers.html", icon: "&#128295;", label: "Service providers", permission: "service_providers:read" },
+      { key: "stores", href: "stores.html", icon: "&#127978;", label: "Stores", permission: "stores:read" }
     ]
   },
   {
     label: "Communication",
     items: [
-      { key: "notifications", href: "notifications.html", icon: "&#128276;", label: "WhatsApp templates", roles: ["ops_admin", "business_admin"] },
-      { key: "automations", href: "automations.html", icon: "&#9889;", label: "Automations", roles: ["ops_admin", "business_admin"] },
-      { key: "message-log", href: "message-log.html", icon: "&#128172;", label: "Outbound message log", roles: ["ops_admin", "business_admin"] }
+      { key: "notifications", href: "notifications.html", icon: "&#128276;", label: "WhatsApp templates", permission: "whatsapp_templates:read" },
+      { key: "automations", href: "automations.html", icon: "&#9889;", label: "Automations", permission: "automations:read" },
+      { key: "message-log", href: "message-log.html", icon: "&#128172;", label: "Outbound message log", permission: "interactions:read" }
     ]
   },
   {
     label: "Data",
     items: [
-      { key: "leads-import", href: "leads-import.html", icon: "&#128229;", label: "Lead import", roles: ["business_admin"] },
-      { key: "lead-sources", href: "lead-sources.html", icon: "&#128279;", label: "Lead sources &amp; pricing", roles: ["business_admin"] },
-      { key: "webhook-replay", href: "webhook-replay.html", icon: "&#8635;", label: "Webhook replay", roles: ["ops_admin"] }
+      { key: "leads-import", href: "leads-import.html", icon: "&#128229;", label: "Lead import", permission: "lead_sources:read" },
+      { key: "lead-sources", href: "lead-sources.html", icon: "&#128279;", label: "Lead sources &amp; pricing", permission: "lead_sources:read" },
+      { key: "webhook-replay", href: "webhook-replay.html", icon: "&#8635;", label: "Webhook replay", permission: "webhook_replay:read" }
     ]
   },
   {
     label: "System",
     items: [
-      { key: "users", href: "users.html", icon: "&#128101;", label: "Users &amp; permissions", roles: ["system_admin"] },
-      { key: "audit-log", href: "audit-log.html", icon: "&#128220;", label: "Audit log", roles: ["system_admin"] },
-      { key: "settings", href: "settings.html", icon: "&#9881;", label: "Settings", roles: ["system_admin", "ops_admin", "business_admin"] }
+      { key: "users", href: "users.html", icon: "&#128101;", label: "Users &amp; permissions", permission: "users:read" },
+      { key: "audit-log", href: "audit-log.html", icon: "&#128220;", label: "Audit log", permission: "audit_log:read" },
+      { key: "settings", href: "settings.html", icon: "&#9881;", label: "Settings" }
     ]
   }
 ];
+
+function getStoredStaffContext() {
+  try {
+    const raw = sessionStorage.getItem(STAFF_CONTEXT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveStaffContext(context) {
+  if (!context || typeof context !== "object") return;
+  sessionStorage.setItem(STAFF_CONTEXT_KEY, JSON.stringify(context));
+  if (context.role || context.name || context.email) {
+    saveStaffUser(context);
+  }
+}
+
+function getStaffPermissions() {
+  const context = getStoredStaffContext();
+  return new Set(Array.isArray(context?.permissions) ? context.permissions : []);
+}
+
+function hasPermission(permission) {
+  if (!permission) return true;
+  return getStaffPermissions().has(permission);
+}
+
+function clearStaffContext() {
+  sessionStorage.removeItem(STAFF_CONTEXT_KEY);
+}
+
+async function loadStaffContext(force = false) {
+  const cached = !force && getStoredStaffContext();
+  if (cached) return cached;
+  if (staffContextPromise) return staffContextPromise;
+
+  const area = document.body?.dataset.area === "admin" ? "admin" : "console";
+  const path = area === "admin" ? "/v1/admin/me" : "/v1/console/me";
+
+  staffContextPromise = authFetch(path, { method: "GET" })
+    .then((data) => {
+      const context = data || {};
+      saveStaffContext(context);
+      return context;
+    })
+    .finally(() => {
+      staffContextPromise = null;
+    });
+
+  return staffContextPromise;
+}
 
 function initials(name) {
   if (!name) return "?";
@@ -442,38 +495,50 @@ function initials(name) {
   return ((parts[0] || "")[0] + (parts[1] || "")[0]).toUpperCase();
 }
 
-function renderSidebar(activeKey) {
+async function renderSidebar(activeKey) {
   if (!requireAuth()) return;
 
   const mount = document.getElementById("sidebar");
   if (!mount) return;
 
-  const user = getStaffUser() || {};
-  const displayName = user.name || user.full_name || user.email || "Staff";
-  const roleRaw = getStaffRole();
-  const roleLabel = (roleRaw || "staff").replace(/_/g, " ");
   const area = document.body?.dataset.area === "admin" ? "admin" : "console";
   const navSections = area === "admin" ? ADMIN_NAV : CONSOLE_NAV;
 
+  try {
+    await loadStaffContext();
+  } catch (error) {
+    console.error("Unable to load staff permissions:", error);
+    mount.innerHTML = `<div class="api-error-banner" style="display:block;margin:16px">${escapeHtml(error.message || "Unable to load permissions.")}</div>`;
+    return;
+  }
+
+  const context = getStoredStaffContext() || {};
+  const user = getStaffUser() || context || {};
+  const displayName = user.name || user.full_name || user.email || "Staff";
+  const roleRaw = String(user.role || context.role || "").toLowerCase();
+  const roleLabel = (roleRaw || "staff").replace(/_/g, " ");
+
   const allItems = navSections.flatMap((section) => section.items);
   const currentItem = allItems.find((item) => item.key === activeKey);
+  const currentAllowed = currentItem &&
+    (!currentItem.roles || currentItem.roles.includes(roleRaw)) &&
+    (!currentItem.permission || hasPermission(currentItem.permission));
 
-  if (currentItem && currentItem.roles && !currentItem.roles.includes(roleRaw)) {
+  if (currentItem && !currentAllowed) {
     window.location.href = getLandingPath();
     return;
   }
 
   let navHtml = "";
-
   navSections.forEach((section) => {
     const visibleItems = section.items.filter((item) =>
-      !item.roles || item.roles.includes(roleRaw)
+      (!item.roles || item.roles.includes(roleRaw)) &&
+      (!item.permission || hasPermission(item.permission))
     );
 
     if (!visibleItems.length) return;
 
     navHtml += `<div class="nav-section">${section.label}</div>`;
-
     visibleItems.forEach((item) => {
       navHtml += `
         <a href="${item.href}" class="${item.key === activeKey ? "active" : ""}">
@@ -483,8 +548,8 @@ function renderSidebar(activeKey) {
     });
   });
 
-  const canOpenConsole = ["ops_admin", "business_admin"].includes(roleRaw);
-  const canOpenAdmin = ["ops_admin", "business_admin", "system_admin"].includes(roleRaw);
+  const canOpenConsole = hasPermission("service_cases:read") || hasPermission("customers:read");
+  const canOpenAdmin = hasPermission("reports:read") || hasPermission("users:read") || hasPermission("warranty_plans:read");
   const switchHref = area === "admin"
     ? resolveHomeKeepRootPath() + "console/service-cases.html"
     : resolveHomeKeepRootPath() + "admin/dashboard.html";

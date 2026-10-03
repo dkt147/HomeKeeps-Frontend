@@ -52,6 +52,10 @@ renderCrudPage({
   title: "Automations",
   subtitle: "Every automation is a row here and can be enabled, disabled or edited without a deploy. Throttles are enforced server-side.",
   listPath: "/v1/admin/automations",
+  createPermission: "automations:create",
+  updatePermission: "automations:update",
+  deletePermission: "automations:delete",
+  deletable: false,
   createLabel: "+ New automation",
   toggleField: "is_active",
   columns: [

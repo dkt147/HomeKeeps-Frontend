@@ -25,3 +25,10 @@ This package was reconciled against the supplied Phase 1 specification and the s
 ## Important
 Run `npm ci` in both projects before starting locally because dependency directories are intentionally not included in the ZIPs.
 Run the backend permission/automation seed scripts after applying the backend package to an existing database so newly added permissions/automation definitions are available.
+
+## Latest reconciliation fixes
+- Confirmed the backend contract for Console Products and Console Me and added the missing backend routes.
+- Corrected Console warranty-sale authorization to use `extended_warranties:create`, matching the backend permission matrix.
+- Fixed the Console staff-profile controller import required by `/v1/console/me`.
+- Sidebar navigation now loads the effective backend permission set and hides/blocks navigation items the current role cannot access.
+- Direct navigation to a page without its required permission redirects to the valid landing page instead of rendering a guaranteed 403 screen.
