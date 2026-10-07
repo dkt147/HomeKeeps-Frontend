@@ -149,6 +149,14 @@
     try {
       const data = await staffLogin(email, password);
 
+      /*
+       * TEMPORARY TESTING BYPASS - STAFF MFA
+       * ------------------------------------
+       * MFA setup/login redirects are intentionally disabled for the testing period.
+       * DO NOT DELETE the original frontend MFA flow below. Re-enable it before production.
+       */
+
+      /*
       if (data?.mfa_setup_required && data.setup_token) {
         sessionStorage.setItem("homekeep_mfa_setup_token", data.setup_token);
         if (data.expires_in) {
@@ -174,6 +182,8 @@
         }, 300);
         return;
       }
+
+      */
 
       // Defensive support if the backend ever returns a fully authenticated
       // response directly. Normal Phase 1 staff login uses MFA first.
